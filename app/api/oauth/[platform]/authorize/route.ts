@@ -56,9 +56,16 @@ export async function GET(
     }
 
     // 5. Determine Dynamic Redirect URI
-    const protocol = req.headers.get('x-forwarded-proto') || 'http';
-    const host = req.headers.get('host') || 'localhost:4000';
-    const redirectUri = protocol + '://' + host + '/api/oauth/' + platform + '/callback';
+    let baseUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+    if (!baseUrl) {
+      const forwardedProto = req.headers.get('x-forwarded-proto');
+      const forwardedHost = req.headers.get('x-forwarded-host');
+      const host = req.headers.get('host') || 'localhost:4000';
+      const protocol = forwardedProto || (process.env.NODE_ENV === 'production' ? 'https' : 'http');
+      baseUrl = `${protocol}://${forwardedHost || host}`;
+    }
+    baseUrl = baseUrl.replace(/\/+$/, '');
+    const redirectUri = `${baseUrl}/api/oauth/${platform}/callback`;
 
     // 6. Store State in Database (with 10-minute expiry)
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();

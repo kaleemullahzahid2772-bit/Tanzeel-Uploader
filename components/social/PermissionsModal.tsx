@@ -100,7 +100,7 @@ export function PermissionsModal({
             }}
             leftIcon={<ExternalLink className="w-3.5 h-3.5" />}
           >
-            Authorize on {config.name.split(' ')[0]}
+            Authorize in {config.name.split(' ')[0]}
           </Button>
         </div>
       </div>

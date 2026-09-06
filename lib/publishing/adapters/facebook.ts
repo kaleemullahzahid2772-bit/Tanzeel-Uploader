@@ -6,7 +6,7 @@ import {
   buildFormattedPostText,
 } from './types';
 
-const META_GRAPH_VERSION = 'v20.0';
+const META_GRAPH_VERSION = 'v21.0';
 const FB_GRAPH_BASE = `https://graph.facebook.com/${META_GRAPH_VERSION}`;
 
 export const facebookAdapter: PlatformPublishAdapter = {

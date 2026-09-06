@@ -48,10 +48,25 @@ export function DeveloperConfigGuide({
           <p>{config.clientSecretEnv}=your_{platform}_client_secret</p>
         </div>
 
-        <div className="space-y-2">
-          <h4 className="font-bold text-emerald-deep">Callback URL to configure in Developer Portal:</h4>
-          <div className="p-2.5 rounded-lg bg-sand-light border border-sand-border font-mono text-[11px] select-all">
-            http://localhost:4000/api/oauth/{platform}/callback
+        <div className="space-y-2.5">
+          <h4 className="font-bold text-emerald-deep">Valid OAuth Redirect URIs to add in Developer Portal:</h4>
+          
+          <div className="space-y-1.5">
+            <span className="text-[10px] text-charcoal-light font-mono font-medium uppercase">
+              1. Production Vercel Domain:
+            </span>
+            <div className="p-2.5 rounded-lg bg-sand-light border border-sand-border font-mono text-[11px] select-all text-emerald-deep">
+              https://tanzeel-uploader.vercel.app/api/oauth/{platform}/callback
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <span className="text-[10px] text-charcoal-light font-mono font-medium uppercase">
+              2. Local Development:
+            </span>
+            <div className="p-2.5 rounded-lg bg-sand-light border border-sand-border font-mono text-[11px] select-all text-emerald-deep">
+              http://localhost:4000/api/oauth/{platform}/callback
+            </div>
           </div>
         </div>
 

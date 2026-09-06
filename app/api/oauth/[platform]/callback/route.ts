@@ -82,6 +82,14 @@ export async function GET(
 
     // 5. Store / Upsert Connected Accounts in Database
     for (const acc of tokenResult.accounts) {
+      const rawMetadata = { ...(acc.metadata || {}) };
+      const rawPageToken = typeof rawMetadata.page_access_token === 'string' ? rawMetadata.page_access_token : null;
+      delete rawMetadata.page_access_token; // Never store plain-text access tokens in metadata JSONB!
+
+      const pageAccessTokenEncrypted = rawPageToken
+        ? encryptToken(rawPageToken)
+        : accessTokenEncrypted;
+
       await supabase.from('social_accounts').upsert(
         {
           user_id: user.id,
@@ -90,12 +98,12 @@ export async function GET(
           account_name: acc.accountName,
           username: acc.username || null,
           profile_image_url: acc.profileImageUrl || null,
-          access_token_encrypted: accessTokenEncrypted,
+          access_token_encrypted: pageAccessTokenEncrypted,
           refresh_token_encrypted: refreshTokenEncrypted,
           token_expires_at: expiresAtDate,
           scopes: tokenResult.scopes || [],
           status: 'connected',
-          metadata: acc.metadata || {},
+          metadata: rawMetadata,
           connected_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },

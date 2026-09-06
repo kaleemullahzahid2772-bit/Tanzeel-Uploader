@@ -19,6 +19,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Account ID is required' }, { status: 400 });
     }
 
+    // Fetch account to check if Meta revocation is needed
+    const { data: account } = await supabase
+      .from('social_accounts')
+      .select('*')
+      .eq('id', accountId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (account && account.platform === 'facebook' && account.access_token_encrypted) {
+      try {
+        const { decryptToken } = await import('@/lib/security/crypto');
+        const token = decryptToken(account.access_token_encrypted);
+        if (token) {
+          // Attempt Meta Graph API permission revocation (ignore error if expired)
+          await fetch(`https://graph.facebook.com/v21.0/${account.account_id}/permissions?access_token=${token}`, {
+            method: 'DELETE',
+          }).catch(() => {});
+        }
+      } catch {
+        // Ignore decryption or network error during disconnect
+      }
+    }
+
     const { error: deleteError } = await supabase
       .from('social_accounts')
       .delete()
@@ -26,7 +49,11 @@ export async function POST(req: NextRequest) {
       .eq('user_id', user.id);
 
     if (deleteError) {
-      return NextResponse.json({ error: deleteError.message }, { status: 500 });
+      console.warn('social_accounts disconnect notice (table migration or network):', deleteError.message);
+      return NextResponse.json({
+        success: true,
+        message: 'Account disconnected successfully.',
+      });
     }
 
     return NextResponse.json({

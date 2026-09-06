@@ -271,19 +271,22 @@ export function getOAuthProviderConfig(platform: SocialPlatform): OAuthProviderC
 
 export function isPlatformConfigured(platform: SocialPlatform): boolean {
   const config = getOAuthProviderConfig(platform);
-  const clientId = process.env[config.clientIdEnv];
-  const clientSecret = process.env[config.clientSecretEnv];
+  let clientId = process.env[config.clientIdEnv];
+  let clientSecret = process.env[config.clientSecretEnv];
 
-  if (!clientId || !clientSecret) {
-    if (platform === 'instagram' || platform === 'whatsapp') {
-      const fbId = process.env.FACEBOOK_CLIENT_ID;
-      const fbSecret = process.env.FACEBOOK_CLIENT_SECRET;
-      return Boolean(fbId && fbSecret);
-    }
-    return false;
+  if (platform === 'facebook' || platform === 'instagram' || platform === 'whatsapp') {
+    clientId =
+      process.env.FACEBOOK_CLIENT_ID ||
+      process.env.NEXT_PUBLIC_FACEBOOK_APP_ID ||
+      process.env.FACEBOOK_APP_ID ||
+      clientId;
+    clientSecret =
+      process.env.FACEBOOK_CLIENT_SECRET ||
+      process.env.FACEBOOK_APP_SECRET ||
+      clientSecret;
   }
 
-  return true;
+  return Boolean(clientId && clientSecret);
 }
 
 export function getProviderCredentials(platform: SocialPlatform): {
@@ -294,9 +297,16 @@ export function getProviderCredentials(platform: SocialPlatform): {
   let clientId = process.env[config.clientIdEnv] || '';
   let clientSecret = process.env[config.clientSecretEnv] || '';
 
-  if ((!clientId || !clientSecret) && (platform === 'instagram' || platform === 'whatsapp')) {
-    clientId = process.env.FACEBOOK_CLIENT_ID || '';
-    clientSecret = process.env.FACEBOOK_CLIENT_SECRET || '';
+  if (platform === 'facebook' || platform === 'instagram' || platform === 'whatsapp') {
+    clientId =
+      process.env.FACEBOOK_CLIENT_ID ||
+      process.env.NEXT_PUBLIC_FACEBOOK_APP_ID ||
+      process.env.FACEBOOK_APP_ID ||
+      clientId;
+    clientSecret =
+      process.env.FACEBOOK_CLIENT_SECRET ||
+      process.env.FACEBOOK_APP_SECRET ||
+      clientSecret;
   }
 
   return { clientId, clientSecret };
