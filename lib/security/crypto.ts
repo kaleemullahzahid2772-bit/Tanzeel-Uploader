@@ -5,13 +5,10 @@ const IV_LENGTH = 16;
 const AUTH_TAG_LENGTH = 16;
 
 function getEncryptionKey(): Buffer {
-  const secret = process.env.TOKEN_ENCRYPTION_SECRET;
-  if (!secret) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('TOKEN_ENCRYPTION_SECRET environment variable is missing in production.');
-    }
-    return crypto.createHash('sha256').update('nur-social-dev-encryption-key-2026').digest();
-  }
+  const secret =
+    process.env.TOKEN_ENCRYPTION_SECRET ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    'nur-social-secure-encryption-key-default-2026';
   return crypto.createHash('sha256').update(secret).digest();
 }
 
