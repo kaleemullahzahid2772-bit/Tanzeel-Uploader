@@ -134,6 +134,33 @@ export default function SocialAccountsPage() {
     window.location.href = '/api/oauth/' + platform + '/authorize';
   };
 
+  // 3b. Sandbox Connect Handler (Instant Test Mode)
+  const handleSandboxConnect = async (platform: SocialPlatform) => {
+    try {
+      setActionLoading(true);
+      const res = await fetch('/api/social-accounts/sandbox-connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setNotification({
+          type: 'success',
+          messageEn: data.message || 'Connected in Sandbox mode!',
+          messageUr: 'اکاؤنٹ ٹیسٹ (Sandbox) موڈ میں کامیابی سے کنیکٹ ہو گیا۔',
+        });
+        await fetchAccounts();
+      } else {
+        alert('Sandbox connect failed: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error('Sandbox connect error:', err);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // 4. Disconnect Handler
   const handleConfirmDisconnect = async (account: SocialAccountPublic) => {
     try {
@@ -339,6 +366,7 @@ export default function SocialAccountsPage() {
                 onViewPermissions={(p) => setPermissionsPlatform(p)}
                 onViewConfigGuide={(p) => setGuidePlatform(p)}
                 onManageAccount={(acc) => setManageAccount(acc)}
+                onSandboxConnect={handleSandboxConnect}
                 isActionLoading={actionLoading}
               />
             );
@@ -373,6 +401,7 @@ export default function SocialAccountsPage() {
         isOpen={Boolean(permissionsPlatform)}
         onClose={() => setPermissionsPlatform(null)}
         onProceedConnect={handleInitiateConnect}
+        onSandboxConnect={handleSandboxConnect}
       />
 
       <DisconnectConfirmModal

@@ -31,6 +31,7 @@ interface AccountCardProps {
   onViewPermissions: (platform: SocialPlatform) => void;
   onViewConfigGuide: (platform: SocialPlatform) => void;
   onManageAccount?: (account: SocialAccountPublic) => void;
+  onSandboxConnect?: (platform: SocialPlatform) => void;
   isActionLoading?: boolean;
 }
 
@@ -44,6 +45,7 @@ export function AccountCard({
   onViewPermissions,
   onViewConfigGuide,
   onManageAccount,
+  onSandboxConnect,
   isActionLoading = false,
 }: AccountCardProps) {
   const config = getOAuthProviderConfig(platform);
@@ -249,9 +251,9 @@ export function AccountCard({
                 {config.name} integration is not configured yet.
               </p>
               <p className="text-[11px] text-charcoal-muted">
-                Add developer credentials in <code className="bg-white px-1 py-0.5 rounded border border-sand-border font-mono">.env.local</code> to activate live OAuth.
+                Add developer credentials in <code className="bg-white px-1 py-0.5 rounded border border-sand-border font-mono">.env.local</code> or connect in Sandbox mode to test instantly.
               </p>
-              <div className="pt-1">
+              <div className="pt-1 flex items-center justify-center gap-2">
                 <Button
                   type="button"
                   variant="outline"
@@ -259,8 +261,20 @@ export function AccountCard({
                   onClick={() => onViewConfigGuide(platform)}
                   className="text-xs bg-white"
                 >
-                  View Setup Instructions
+                  Setup Guide
                 </Button>
+                {onSandboxConnect && (
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    onClick={() => onSandboxConnect(platform)}
+                    disabled={isActionLoading}
+                    className="text-xs"
+                  >
+                    Test Connect
+                  </Button>
+                )}
               </div>
             </div>
           ) : (
