@@ -12,7 +12,6 @@ interface PermissionsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onProceedConnect: (platform: SocialPlatform) => void;
-  onSandboxConnect?: (platform: SocialPlatform) => void;
 }
 
 export function PermissionsModal({
@@ -20,7 +19,6 @@ export function PermissionsModal({
   isOpen,
   onClose,
   onProceedConnect,
-  onSandboxConnect,
 }: PermissionsModalProps) {
   if (!platform) return null;
   const config = getOAuthProviderConfig(platform);
@@ -88,39 +86,22 @@ export function PermissionsModal({
         </div>
 
         {/* Action Footer */}
-        <div className="flex items-center justify-between gap-2 pt-3 border-t border-sand-border">
-          {onSandboxConnect ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                onClose();
-                onSandboxConnect(platform);
-              }}
-              className="text-xs text-gold-deep border-gold-primary/40 hover:bg-amber-50/50"
-            >
-              Test Connect (Sandbox)
-            </Button>
-          ) : <div />}
-
-          <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="primary"
-              size="sm"
-              onClick={() => {
-                onClose();
-                onProceedConnect(platform);
-              }}
-              leftIcon={<ExternalLink className="w-3.5 h-3.5" />}
-            >
-              Authorize in {config.name.split(' ')[0]}
-            </Button>
-          </div>
+        <div className="flex items-center justify-end gap-2 pt-3 border-t border-sand-border">
+          <Button type="button" variant="outline" size="sm" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            onClick={() => {
+              onClose();
+              onProceedConnect(platform);
+            }}
+            leftIcon={<ExternalLink className="w-3.5 h-3.5" />}
+          >
+            Authorize in {config.name.split(' ')[0]}
+          </Button>
         </div>
       </div>
     </Modal>

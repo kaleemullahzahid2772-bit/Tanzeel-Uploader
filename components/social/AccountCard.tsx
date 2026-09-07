@@ -31,7 +31,6 @@ interface AccountCardProps {
   onViewPermissions: (platform: SocialPlatform) => void;
   onViewConfigGuide: (platform: SocialPlatform) => void;
   onManageAccount?: (account: SocialAccountPublic) => void;
-  onSandboxConnect?: (platform: SocialPlatform) => void;
   isActionLoading?: boolean;
 }
 
@@ -45,7 +44,6 @@ export function AccountCard({
   onViewPermissions,
   onViewConfigGuide,
   onManageAccount,
-  onSandboxConnect,
   isActionLoading = false,
 }: AccountCardProps) {
   const config = getOAuthProviderConfig(platform);
@@ -118,10 +116,6 @@ export function AccountCard({
             {isConnected ? (
               <Badge variant="ready" size="sm">
                 🟢 {connectedAccounts.length} Connected
-              </Badge>
-            ) : !isConfigured ? (
-              <Badge variant="gold" size="sm">
-                🟡 Needs Setup
               </Badge>
             ) : (
               <Badge variant="default" size="sm">
@@ -245,46 +239,14 @@ export function AccountCard({
                 </div>
               );
             })
-          ) : !isConfigured ? (
-            <div className="p-4 rounded-xl bg-amber-50/40 border border-dashed border-amber-200 text-center space-y-2">
-              <p className="text-xs text-amber-900 font-medium leading-relaxed">
-                {config.name} integration is not configured yet.
-              </p>
-              <p className="text-[11px] text-charcoal-muted">
-                Add developer credentials in <code className="bg-white px-1 py-0.5 rounded border border-sand-border font-mono">.env.local</code> or connect in Sandbox mode to test instantly.
-              </p>
-              <div className="pt-1 flex items-center justify-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onViewConfigGuide(platform)}
-                  className="text-xs bg-white"
-                >
-                  Setup Guide
-                </Button>
-                {onSandboxConnect && (
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="sm"
-                    onClick={() => onSandboxConnect(platform)}
-                    disabled={isActionLoading}
-                    className="text-xs"
-                  >
-                    Test Connect
-                  </Button>
-                )}
-              </div>
-            </div>
           ) : (
             <div className="p-4 rounded-xl bg-sand-light/40 border border-dashed border-sand-border text-center space-y-2">
               <p className="text-xs text-charcoal-muted leading-relaxed">
-                Connect your official {config.name} account to enable future automated Islamic publishing.
+                Connect your official {config.name} account to enable automated publishing and AI management.
               </p>
               <div className="flex items-center justify-center gap-2 text-[11px] text-charcoal-light">
                 <Shield className="w-3.5 h-3.5 text-emerald-primary" />
-                <span>Zero-password OAuth 2.0 Security</span>
+                <span>Zero-password Official Facebook OAuth 2.0</span>
               </div>
             </div>
           )}
@@ -293,38 +255,36 @@ export function AccountCard({
 
       {/* Card Footer: Add Account / Connect & Info */}
       <div className="pt-3 border-t border-sand-border/60 flex items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={() => onViewPermissions(platform)}
-          className="text-[11px] text-emerald-primary hover:text-emerald-deep font-medium flex items-center gap-1 transition-colors"
-        >
-          <Info className="w-3.5 h-3.5" />
-          <span>Permissions</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onViewPermissions(platform)}
+            className="text-[11px] text-emerald-primary hover:text-emerald-deep font-medium flex items-center gap-1 transition-colors"
+          >
+            <Info className="w-3.5 h-3.5" />
+            <span>Permissions</span>
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => onViewConfigGuide(platform)}
+            className="text-[11px] text-charcoal-muted hover:text-emerald-deep font-medium transition-colors"
+          >
+            Guide
+          </button>
+        </div>
 
         <div className="flex items-center gap-1.5">
-          {!isConfigured ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => onViewConfigGuide(platform)}
-              className="text-[11px]"
-            >
-              Setup Guide
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant={isConnected ? 'outline' : 'primary'}
-              size="sm"
-              onClick={() => onInitiateConnect(platform)}
-              disabled={isActionLoading}
-              leftIcon={isConnected ? <Plus className="w-3.5 h-3.5" /> : <ExternalLink className="w-3.5 h-3.5" />}
-            >
-              {isConnected ? 'Add Page/Channel' : 'Connect ' + config.name.split(' ')[0]}
-            </Button>
-          )}
+          <Button
+            type="button"
+            variant={isConnected ? 'outline' : 'primary'}
+            size="sm"
+            onClick={() => onInitiateConnect(platform)}
+            disabled={isActionLoading}
+            leftIcon={isConnected ? <Plus className="w-3.5 h-3.5" /> : <ExternalLink className="w-3.5 h-3.5" />}
+          >
+            {isConnected ? 'Add Page/Channel' : 'Connect ' + config.name.split(' ')[0]}
+          </Button>
         </div>
       </div>
     </Card>
