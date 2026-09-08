@@ -299,39 +299,43 @@ export async function generateRealAiImage(
     }
   }
 
-  // 2. High-Performance AI Diffusion fallback using the EXACT Gemini Stage 1 prompt
-  console.log('[Thumbnail AI] Stage 2: Generating high-resolution AI visual using Stage 1 prompt via AI Diffusion...');
+  // 2. High-Performance AI Diffusion using the EXACT Gemini Stage 1 prompt
+  console.log('[Thumbnail AI] Stage 2: Synthesizing high-resolution AI visual buffer on server...');
   const seed = Math.floor(Math.random() * 9999999);
-  const targetW = width >= 1400 ? 1280 : width;
-  const targetH = Math.round((targetW * height) / width);
+  const targetW = width >= 1400 ? 1280 : (width || 1280);
+  const targetH = Math.round((targetW * (height || 720)) / (width || 1280));
 
   const cleanPrompt = encodeURIComponent(
-    `${plan.final_image_prompt}, cinematic 8k wallpaper, clean negative space on ${plan.text_placement} for text overlay, strictly no text, no watermark`
+    `${plan.final_image_prompt}, 16:9 YouTube thumbnail format, cinematic 8k wallpaper, clean negative space on ${plan.text_placement} for text overlay, strictly no text, no watermark`
   );
   const diffusionUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${targetW}&height=${targetH}&seed=${seed}&nologo=true&model=flux`;
 
-  // Verify the image URL is accessible
   try {
-    const checkRes = await fetch(diffusionUrl, { method: 'HEAD' });
-    if (checkRes.ok) {
+    const res = await fetch(diffusionUrl);
+    if (res.ok) {
+      const arrayBuffer = await res.arrayBuffer();
+      const base64 = Buffer.from(arrayBuffer).toString('base64');
+      const mimeType = res.headers.get('content-type') || 'image/jpeg';
+      const base64DataUrl = `data:${mimeType};base64,${base64}`;
+
+      console.log(`[Thumbnail AI] Successfully synthesized server-side Base64 image (${base64DataUrl.length} chars)`);
       return {
-        imageUrl: diffusionUrl,
+        imageUrl: base64DataUrl,
         provider: 'ai_diffusion',
-        modelUsed: 'flux-diffusion-gemini-plan',
+        modelUsed: 'gemini-prompt-flux-visual',
         geminiNotice: geminiKey
-          ? 'Gemini Image Quota Note: Free-tier limit is 0; generated photorealistic visual via AI Diffusion using the Gemini Stage 1 plan.'
+          ? 'Google Gemini Image Quota Notice: Free-tier limit for gemini-3.1-flash-image is currently 0 in Google AI Studio. Synthesized high-resolution photorealistic visual via server buffer using the exact Gemini Stage 1 prompt.'
           : undefined,
       };
+    } else {
+      console.warn(`[Thumbnail AI] Diffusion server fetch returned status: ${res.status}`);
     }
-  } catch (checkErr) {
-    console.warn('[Thumbnail AI] Diffusion HEAD check note:', checkErr);
+  } catch (fetchErr) {
+    console.warn('[Thumbnail AI] Diffusion server buffer fetch error:', fetchErr);
   }
 
-  return {
-    imageUrl: diffusionUrl,
-    provider: 'ai_diffusion',
-    modelUsed: 'flux-diffusion-gemini-plan',
-  };
+  // If both direct Gemini and server buffer encounter issues, throw clean error
+  throw new Error('Image generation service was unable to render the visual buffer. Please try again in a moment.');
 }
 
 /**

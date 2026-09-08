@@ -119,6 +119,7 @@ export async function renderThumbnailCanvas(
     overlayOpacity = 'medium',
     headingFont = 'Playfair Display',
     accentColor = '#C9A227',
+    showTitleOverlay = true,
   } = config;
 
   canvas.width = width;
@@ -130,12 +131,12 @@ export async function renderThumbnailCanvas(
   const isUrdu = isUrduScript(title);
   await ensureFontsLoaded(isUrdu, headingFont);
 
-  // BASE BACKGROUND: Deep emerald dark fill
-  ctx.fillStyle = '#081e17';
+  // BASE BACKGROUND: Neutral dark studio fill (slate-950)
+  ctx.fillStyle = '#090d16';
   ctx.fillRect(0, 0, width, height);
 
   // ============================================================
-  // LAYER 1: BASE VISUAL WITH CINEMATIC COLOR GRADING
+  // LAYER 1: BASE VISUAL (TRUE PHOTOREALISTIC RENDERING)
   // ============================================================
   if (backgroundImageUrl) {
     try {
@@ -158,82 +159,65 @@ export async function renderThumbnailCanvas(
       }
 
       ctx.drawImage(bgImg, drawX, drawY, drawW, drawH);
-
-      // Apply Photoshop-style color grading wash
-      ctx.save();
-      if (colorGrading === 'warm_cinematic') {
-        ctx.fillStyle = 'rgba(201, 162, 39, 0.12)';
-        ctx.globalCompositeOperation = 'overlay';
-        ctx.fillRect(0, 0, width, height);
-      } else if (colorGrading === 'deep_emerald') {
-        ctx.fillStyle = 'rgba(15, 76, 58, 0.16)';
-        ctx.globalCompositeOperation = 'multiply';
-        ctx.fillRect(0, 0, width, height);
-      } else if (colorGrading === 'royal_gold') {
-        ctx.fillStyle = 'rgba(218, 165, 32, 0.14)';
-        ctx.globalCompositeOperation = 'overlay';
-        ctx.fillRect(0, 0, width, height);
-      } else if (colorGrading === 'moody_dusk') {
-        ctx.fillStyle = 'rgba(10, 25, 47, 0.22)';
-        ctx.globalCompositeOperation = 'multiply';
-        ctx.fillRect(0, 0, width, height);
-      }
-      ctx.restore();
     } catch (err) {
-      console.warn('Could not load background image, using emerald gradient fallback:', err);
-      const fallbackGrad = ctx.createLinearGradient(0, 0, width, height);
-      fallbackGrad.addColorStop(0, '#0F4C3A');
-      fallbackGrad.addColorStop(1, '#083B2E');
-      ctx.fillStyle = fallbackGrad;
+      console.warn('Could not load background image:', err);
+      ctx.fillStyle = '#0f172a';
       ctx.fillRect(0, 0, width, height);
     }
-  }
-
-  // ============================================================
-  // LAYER 2: ASYMMETRIC DIRECTIONAL SHADING & VIGNETTE
-  // ============================================================
-  let baseAlpha = 0.58;
-  if (overlayOpacity === 'light') baseAlpha = 0.38;
-  else if (overlayOpacity === 'dark') baseAlpha = 0.82;
-  else if (overlayOpacity === 'none') baseAlpha = 0.18;
-
-  ctx.save();
-  if (compositionLayout === 'subject_left_text_right') {
-    // Subject is on the left, so shade the RIGHT side for text legibility
-    const dirGrad = ctx.createLinearGradient(0, 0, width, 0);
-    dirGrad.addColorStop(0, `rgba(6, 20, 16, ${baseAlpha * 0.25})`);
-    dirGrad.addColorStop(0.4, `rgba(6, 20, 16, ${baseAlpha * 0.6})`);
-    dirGrad.addColorStop(1, `rgba(6, 20, 16, ${Math.min(0.96, baseAlpha * 1.35)})`);
-    ctx.fillStyle = dirGrad;
-    ctx.fillRect(0, 0, width, height);
-  } else if (compositionLayout === 'subject_right_text_left') {
-    // Subject is on the right, so shade the LEFT side for text legibility
-    const dirGrad = ctx.createLinearGradient(0, 0, width, 0);
-    dirGrad.addColorStop(0, `rgba(6, 20, 16, ${Math.min(0.96, baseAlpha * 1.35)})`);
-    dirGrad.addColorStop(0.6, `rgba(6, 20, 16, ${baseAlpha * 0.6})`);
-    dirGrad.addColorStop(1, `rgba(6, 20, 16, ${baseAlpha * 0.25})`);
-    ctx.fillStyle = dirGrad;
-    ctx.fillRect(0, 0, width, height);
-  } else if (compositionLayout === 'subject_bottom_text_top') {
-    // Subject is on the bottom, so shade the TOP side for text legibility
-    const dirGrad = ctx.createLinearGradient(0, 0, 0, height);
-    dirGrad.addColorStop(0, `rgba(6, 20, 16, ${Math.min(0.96, baseAlpha * 1.35)})`);
-    dirGrad.addColorStop(0.55, `rgba(6, 20, 16, ${baseAlpha * 0.6})`);
-    dirGrad.addColorStop(1, `rgba(6, 20, 16, ${baseAlpha * 0.3})`);
-    ctx.fillStyle = dirGrad;
-    ctx.fillRect(0, 0, width, height);
   } else {
-    // Center focus radial vignette
-    const radGrad = ctx.createRadialGradient(
-      width / 2, height / 2, width * 0.15,
-      width / 2, height / 2, width * 0.7
-    );
-    radGrad.addColorStop(0, `rgba(6, 20, 16, ${baseAlpha * 0.75})`);
-    radGrad.addColorStop(1, `rgba(4, 14, 11, ${Math.min(0.95, baseAlpha * 1.25)})`);
-    ctx.fillStyle = radGrad;
+    // Elegant neutral placeholder before generation
+    ctx.fillStyle = '#0f172a';
     ctx.fillRect(0, 0, width, height);
   }
-  ctx.restore();
+
+  // ============================================================
+  // LAYER 2: ASYMMETRIC DIRECTIONAL SHADING (NEUTRAL CONTRAST)
+  // ============================================================
+  if (showTitleOverlay && backgroundImageUrl) {
+    let baseAlpha = 0.65;
+    if (overlayOpacity === 'light') baseAlpha = 0.35;
+    else if (overlayOpacity === 'dark') baseAlpha = 0.85;
+    else if (overlayOpacity === 'none') baseAlpha = 0.15;
+
+    ctx.save();
+    if (compositionLayout === 'subject_left_text_right') {
+      // Subject is on the left, shade the RIGHT side for text legibility
+      const dirGrad = ctx.createLinearGradient(0, 0, width, 0);
+      dirGrad.addColorStop(0, `rgba(0, 0, 0, ${baseAlpha * 0.1})`);
+      dirGrad.addColorStop(0.4, `rgba(0, 0, 0, ${baseAlpha * 0.55})`);
+      dirGrad.addColorStop(1, `rgba(0, 0, 0, ${Math.min(0.95, baseAlpha * 1.3)})`);
+      ctx.fillStyle = dirGrad;
+      ctx.fillRect(0, 0, width, height);
+    } else if (compositionLayout === 'subject_right_text_left') {
+      // Subject is on the right, shade the LEFT side for text legibility
+      const dirGrad = ctx.createLinearGradient(0, 0, width, 0);
+      dirGrad.addColorStop(0, `rgba(0, 0, 0, ${Math.min(0.95, baseAlpha * 1.3)})`);
+      dirGrad.addColorStop(0.55, `rgba(0, 0, 0, ${baseAlpha * 0.55})`);
+      dirGrad.addColorStop(1, `rgba(0, 0, 0, ${baseAlpha * 0.1})`);
+      ctx.fillStyle = dirGrad;
+      ctx.fillRect(0, 0, width, height);
+    } else if (compositionLayout === 'subject_bottom_text_top') {
+      // Subject is on the bottom, shade the TOP side for text legibility
+      const dirGrad = ctx.createLinearGradient(0, 0, 0, height);
+      dirGrad.addColorStop(0, `rgba(0, 0, 0, ${Math.min(0.95, baseAlpha * 1.3)})`);
+      dirGrad.addColorStop(0.55, `rgba(0, 0, 0, ${baseAlpha * 0.55})`);
+      dirGrad.addColorStop(1, `rgba(0, 0, 0, ${baseAlpha * 0.1})`);
+      ctx.fillStyle = dirGrad;
+      ctx.fillRect(0, 0, width, height);
+    } else {
+      // Center focus radial vignette
+      const radGrad = ctx.createRadialGradient(
+        width / 2, height / 2, width * 0.15,
+        width / 2, height / 2, width * 0.7
+      );
+      radGrad.addColorStop(0, `rgba(0, 0, 0, ${baseAlpha * 0.4})`);
+      radGrad.addColorStop(1, `rgba(0, 0, 0, ${Math.min(0.95, baseAlpha * 1.2)})`);
+      ctx.fillStyle = radGrad;
+      ctx.fillRect(0, 0, width, height);
+    }
+    ctx.restore();
+  }
+
 
   // ============================================================
   // LAYER 3 & 4: DYNAMIC TYPOGRAPHY (EXACT TITLE + JAMEEL NOORI NASTALEEQ)
@@ -255,7 +239,7 @@ export async function renderThumbnailCanvas(
   const englishFontFamily = `'Montserrat', 'Inter', ${headingFont ? `'${headingFont}', ` : ''}'Impact', 'Arial Black', system-ui, sans-serif`;
   const finalFontFamily = isUrdu ? urduFontFamily : englishFontFamily;
 
-  // Dynamic Font Sizing
+  // Dynamic Font Sizing and Layout Metrics
   let fontSize = isUrdu ? Math.round(width * 0.052) : Math.round(width * 0.05);
   if (title.length > 85) fontSize = Math.round(fontSize * 0.72);
   else if (title.length > 55) fontSize = Math.round(fontSize * 0.84);
@@ -288,80 +272,87 @@ export async function renderThumbnailCanvas(
     startY = (height - totalTextHeight) / 2 + fontSize * (isUrdu ? 0.75 : 0.85);
   }
 
-  // LAYER 3: Optional Glassmorphism Text Panel
-  if (typographyTreatment === 'glassmorphism_card') {
-    const cardPadX = Math.round(width * 0.035);
-    const cardPadY = Math.round(height * 0.04);
-    const cardX = textZoneX - cardPadX;
-    const cardY = startY - fontSize - cardPadY;
-    const cardW = textZoneWidth + cardPadX * 2;
-    const cardH = totalTextHeight + cardPadY * 2.2;
+  // ============================================================
+  // LAYER 3 & 4: DYNAMIC TYPOGRAPHY (RENDERED ONLY IF OVERLAY ENABLED)
+  // ============================================================
+  if (showTitleOverlay) {
 
-    ctx.save();
-    ctx.fillStyle = 'rgba(8, 28, 22, 0.72)';
-    ctx.strokeStyle = 'rgba(201, 162, 39, 0.45)';
-    ctx.lineWidth = 2;
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
-    ctx.shadowBlur = 24;
+    // LAYER 3: Optional Glassmorphism Text Panel
+    if (typographyTreatment === 'glassmorphism_card') {
+      const cardPadX = Math.round(width * 0.035);
+      const cardPadY = Math.round(height * 0.04);
+      const cardX = textZoneX - cardPadX;
+      const cardY = startY - fontSize - cardPadY;
+      const cardW = textZoneWidth + cardPadX * 2;
+      const cardH = totalTextHeight + cardPadY * 2.2;
 
-    // Draw rounded rect
-    const radius = 18;
-    ctx.beginPath();
-    ctx.moveTo(cardX + radius, cardY);
-    ctx.lineTo(cardX + cardW - radius, cardY);
-    ctx.quadraticCurveTo(cardX + cardW, cardY, cardX + cardW, cardY + radius);
-    ctx.lineTo(cardX + cardW, cardY + cardH - radius);
-    ctx.quadraticCurveTo(cardX + cardW, cardY + cardH, cardX + cardW - radius, cardY + cardH);
-    ctx.lineTo(cardX + radius, cardY + cardH);
-    ctx.quadraticCurveTo(cardX, cardY + cardH, cardX, cardY + cardH - radius);
-    ctx.lineTo(cardX, cardY + radius);
-    ctx.quadraticCurveTo(cardX, cardY, cardX + radius, cardY);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    ctx.restore();
+      ctx.save();
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
+      ctx.strokeStyle = 'rgba(201, 162, 39, 0.45)';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+      ctx.shadowBlur = 24;
+
+      // Draw rounded rect
+      const radius = 18;
+      ctx.beginPath();
+      ctx.moveTo(cardX + radius, cardY);
+      ctx.lineTo(cardX + cardW - radius, cardY);
+      ctx.quadraticCurveTo(cardX + cardW, cardY, cardX + cardW, cardY + radius);
+      ctx.lineTo(cardX + cardW, cardY + cardH - radius);
+      ctx.quadraticCurveTo(cardX + cardW, cardY + cardH, cardX + cardW - radius, cardY + cardH);
+      ctx.lineTo(cardX + radius, cardY + cardH);
+      ctx.quadraticCurveTo(cardX, cardY + cardH, cardX, cardY + cardH - radius);
+      ctx.lineTo(cardX, cardY + radius);
+      ctx.quadraticCurveTo(cardX, cardY, cardX + radius, cardY);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // LAYER 4: Draw EXACT Title Text
+    lines.forEach((line, index) => {
+      const y = startY + index * lineHeight;
+      let x = textZoneX;
+
+      const align = isUrdu ? (textAlign === 'center' ? 'center' : 'right') : textAlign;
+
+      if (align === 'center') {
+        const metrics = ctx.measureText(line);
+        x = textZoneX + (textZoneWidth - metrics.width) / 2;
+      } else if (align === 'right') {
+        const metrics = ctx.measureText(line);
+        x = textZoneX + textZoneWidth - metrics.width;
+      }
+
+      // Floating Pop Drop Shadow
+      ctx.save();
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.95)';
+      ctx.shadowBlur = Math.round(fontSize * 0.4);
+      ctx.shadowOffsetX = 3;
+      ctx.shadowOffsetY = 6;
+
+      if (typographyTreatment === 'gold_highlighted_keyword') {
+        // Word-by-word rendering with exact wording preserved
+        const words = line.split(' ');
+        let currentX = x;
+
+        words.forEach((word) => {
+          const wordText = word + ' ';
+          const isHighlighted = isGoldKeyword(word);
+          ctx.fillStyle = isHighlighted ? (accentColor || '#C9A227') : '#FFFDF7';
+          ctx.fillText(wordText, currentX, y);
+          currentX += ctx.measureText(wordText).width;
+        });
+      } else {
+        ctx.fillStyle = '#FFFDF7'; // Crisp warm ivory
+        ctx.fillText(line, x, y);
+      }
+      ctx.restore();
+    });
   }
 
-  // LAYER 4: Draw EXACT Title Text
-  lines.forEach((line, index) => {
-    const y = startY + index * lineHeight;
-    let x = textZoneX;
-
-    const align = isUrdu ? (textAlign === 'center' ? 'center' : 'right') : textAlign;
-
-    if (align === 'center') {
-      const metrics = ctx.measureText(line);
-      x = textZoneX + (textZoneWidth - metrics.width) / 2;
-    } else if (align === 'right') {
-      const metrics = ctx.measureText(line);
-      x = textZoneX + textZoneWidth - metrics.width;
-    }
-
-    // Floating Pop Drop Shadow
-    ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.95)';
-    ctx.shadowBlur = Math.round(fontSize * 0.4);
-    ctx.shadowOffsetX = 3;
-    ctx.shadowOffsetY = 6;
-
-    if (typographyTreatment === 'gold_highlighted_keyword') {
-      // Word-by-word rendering with exact wording preserved
-      const words = line.split(' ');
-      let currentX = x;
-
-      words.forEach((word) => {
-        const wordText = word + ' ';
-        const isHighlighted = isGoldKeyword(word);
-        ctx.fillStyle = isHighlighted ? (accentColor || '#C9A227') : '#FFFDF7';
-        ctx.fillText(wordText, currentX, y);
-        currentX += ctx.measureText(wordText).width;
-      });
-    } else {
-      ctx.fillStyle = '#FFFDF7'; // Crisp warm ivory
-      ctx.fillText(line, x, y);
-    }
-    ctx.restore();
-  });
 
   // ============================================================
   // LAYER 5: ADAPTIVE DECORATIVE ELEMENTS (BORDER FREEDOM)

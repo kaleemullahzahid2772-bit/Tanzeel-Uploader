@@ -182,6 +182,7 @@ export interface ThumbnailConfig {
   primaryColor?: string;
   accentColor?: string;
   brandName?: string;
+  showTitleOverlay?: boolean;
 }
 
 export interface StructuredThumbnailPlan {

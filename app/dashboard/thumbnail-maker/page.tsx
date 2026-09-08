@@ -60,11 +60,12 @@ export default function ThumbnailMakerPage() {
   const [activeTab, setActiveTab] = useState<'editor' | 'history'>('editor');
 
   // Core Inputs
-  const [title, setTitle] = useState('نمازی کے آگے سے کتنے فاصلے تک گزر جا سکتا ہے؟');
-  const [selectedPresetId, setSelectedPresetId] = useState('wp_featured');
-  const [customWidth, setCustomWidth] = useState(1599);
-  const [customHeight, setCustomHeight] = useState(892);
+  const [title, setTitle] = useState('How to Start an Online Business in Pakistan');
+  const [selectedPresetId, setSelectedPresetId] = useState('hd_landscape');
+  const [customWidth, setCustomWidth] = useState(1280);
+  const [customHeight, setCustomHeight] = useState(720);
   const [template, setTemplate] = useState<ThumbnailTemplate>('islamic_premium');
+  const [showTitleOverlay, setShowTitleOverlay] = useState(true);
 
   // Advanced Art Direction & Photoshop Compositing State
   const [designStyle, setDesignStyle] = useState<DesignStyle>('cinematic_islamic');
@@ -205,6 +206,7 @@ export default function ThumbnailMakerPage() {
       primaryColor: brandKit?.primary_color || '#0F4C3A',
       accentColor: brandKit?.accent_color || '#C9A227',
       brandName: brandKit?.brand_name,
+      showTitleOverlay,
     };
 
     try {
@@ -232,6 +234,7 @@ export default function ThumbnailMakerPage() {
     textAlign,
     overlayOpacity,
     isUrdu,
+    showTitleOverlay,
   ]);
 
   useEffect(() => {
@@ -392,6 +395,7 @@ export default function ThumbnailMakerPage() {
         primaryColor: brandKit?.primary_color || '#0F4C3A',
         accentColor: brandKit?.accent_color || '#C9A227',
         brandName: brandKit?.brand_name,
+        showTitleOverlay,
       };
 
       const blob = await exportThumbnailBlob(config);
@@ -445,6 +449,7 @@ export default function ThumbnailMakerPage() {
         textAlign: isUrdu ? 'center' : textAlign,
         overlayOpacity,
         headingFont: isUrdu ? 'Jameel Noori Nastaleeq' : (brandKit?.heading_font || 'Playfair Display'),
+        showTitleOverlay,
       };
 
       const dataUrl = await exportThumbnailDataUrl(config);
@@ -885,6 +890,28 @@ export default function ThumbnailMakerPage() {
                     ))}
                   </div>
                 </div>
+              </div>
+
+              {/* Title Typography Overlay Toggle */}
+              <div className="pt-2 border-t border-sand-border/60">
+                <label className="flex items-center justify-between cursor-pointer p-2.5 rounded-xl bg-white border border-sand-border/70 hover:border-gold-primary transition-all">
+                  <div className="space-y-0.5">
+                    <span className="text-xs font-semibold text-emerald-deep block">
+                      Overlay Title Typography
+                    </span>
+                    <span className="text-[10px] text-charcoal-muted block">
+                      {showTitleOverlay
+                        ? 'Render styled typography & shading over the AI visual'
+                        : 'Pure AI image only (no text overlays)'}
+                    </span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={showTitleOverlay}
+                    onChange={(e) => setShowTitleOverlay(e.target.checked)}
+                    className="w-4 h-4 accent-emerald-deep cursor-pointer"
+                  />
+                </label>
               </div>
             </Card>
 
