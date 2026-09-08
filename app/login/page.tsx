@@ -85,17 +85,12 @@ export default function LoginPage() {
   const handleDemoSignIn = async () => {
     setLoading(true);
     setError(null);
-    setResendStatus(null);
     try {
-      const { error: demoError } = await signIn('demo@nursocial.ai', 'demo1234');
-      if (demoError) {
-        setError(demoError.message);
-        setLoading(false);
-      } else {
-        router.replace('/dashboard');
-      }
+      // Set 7-day demo session cookie recognized by middleware & AuthContext
+      document.cookie = 'nur_demo_session=true; path=/; max-age=604800; SameSite=Lax';
+      window.location.href = '/dashboard/thumbnail-maker';
     } catch {
-      setError('Failed to initiate demo session.');
+      setError('Failed to initiate session.');
       setLoading(false);
     }
   };
@@ -249,20 +244,18 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          {/* Sandbox Demo Helper (Shown only when demo mode is active or unconfigured) */}
-          {(isDemoModeEnabled || !isConfigured) && (
-            <div className="mt-4 pt-3 border-t border-sand-border/50 text-center">
-              <button
-                type="button"
-                onClick={handleDemoSignIn}
-                disabled={loading}
-                className="inline-flex items-center gap-1.5 text-xs text-gold-deep hover:text-gold-dark font-medium bg-gold-subtle/80 hover:bg-gold-subtle px-3 py-1.5 rounded-lg border border-gold-border/50 transition-colors"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-gold-primary" />
-                <span>Instant Sandbox Demo Access</span>
-              </button>
-            </div>
-          )}
+          {/* Sandbox Demo Access */}
+          <div className="mt-4 pt-3 border-t border-sand-border/50 text-center">
+            <button
+              type="button"
+              onClick={handleDemoSignIn}
+              disabled={loading}
+              className="w-full inline-flex items-center justify-center gap-2 text-xs text-emerald-deep font-semibold bg-gold-primary hover:bg-gold-deep py-2.5 px-4 rounded-xl shadow-xs transition-all"
+            >
+              <Sparkles className="w-4 h-4 text-emerald-deep" />
+              <span>Instant Access • بغیر لاگ ان داخل ہوں</span>
+            </button>
+          </div>
 
           {/* Motto */}
           <div className="mt-6 pt-4 border-t border-sand-border/40 text-center text-[10px] uppercase font-mono tracking-widest text-charcoal-light">

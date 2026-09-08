@@ -16,6 +16,8 @@ import {
   Settings,
   X,
   Sparkles,
+  Wand2,
+  Palette,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -41,9 +43,18 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
       icon: LayoutDashboard,
     },
     {
-      label: 'Create Post',
-      href: '/dashboard/create-post',
-      icon: PlusSquare,
+      label: 'AI Thumbnail Maker',
+      href: '/dashboard/thumbnail-maker',
+      icon: Wand2,
+      badge: 'Primary',
+      badgeVariant: 'gold',
+    },
+    {
+      label: 'Brand Kit',
+      href: '/dashboard/brand-kit',
+      icon: Palette,
+      badge: 'New',
+      badgeVariant: 'gold',
     },
     {
       label: 'Media Library',
@@ -51,17 +62,15 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
       icon: ImageIcon,
     },
     {
+      label: 'Create Post',
+      href: '/dashboard/create-post',
+      icon: PlusSquare,
+    },
+    {
       label: 'Publishing',
       href: '/dashboard/publishing',
       icon: Send,
       badge: 'Phase 5',
-      badgeVariant: 'gold',
-    },
-    {
-      label: 'Accounts',
-      href: '/dashboard/accounts',
-      icon: Share2,
-      badge: 'Phase 4',
       badgeVariant: 'gold',
     },
     {
@@ -84,6 +93,13 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
       icon: Sparkles,
       badge: 'Phase 8',
       badgeVariant: 'gold',
+    },
+    {
+      label: 'Accounts',
+      href: '/dashboard/accounts',
+      icon: Share2,
+      badge: 'Coming Soon',
+      badgeVariant: 'muted',
     },
     {
       label: 'Settings',

@@ -921,3 +921,5 @@ export interface MarketingReportData {
   weeklyStrategy: string[];
   dataLimitations: string[];
 }
+
+export * from './thumbnail';
