@@ -13,16 +13,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!process.env.GEMINI_API_KEY) {
-      return NextResponse.json(
-        {
-          error: 'GEMINI_API_KEY environment variable is missing on the server.',
-          code: 'API_KEY_MISSING',
-        },
-        { status: 500 }
-      );
-    }
-
     const parsedWidth = Math.max(200, Math.min(4000, Number(width) || 1599));
     const parsedHeight = Math.max(200, Math.min(4000, Number(height) || 892));
 

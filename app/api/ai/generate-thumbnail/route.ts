@@ -13,17 +13,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!process.env.GEMINI_API_KEY) {
-      console.warn('[Thumbnail AI] GEMINI_API_KEY is not set in environment variables.');
-      return NextResponse.json(
-        {
-          error: 'GEMINI_API_KEY environment variable is missing on the server. Please add your Google Gemini API key to .env.local to enable AI generation.',
-          code: 'API_KEY_MISSING',
-        },
-        { status: 500 }
-      );
-    }
-
     const parsedWidth = Math.max(200, Math.min(4000, Number(width) || 1599));
     const parsedHeight = Math.max(200, Math.min(4000, Number(height) || 892));
 

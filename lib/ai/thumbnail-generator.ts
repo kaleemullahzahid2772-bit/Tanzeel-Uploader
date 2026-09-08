@@ -415,9 +415,9 @@ export async function generateThumbnailBackground(
   title: string,
   width: number = 1599,
   height: number = 892,
-  options?: { customPrompt?: string }
+  options?: { customPrompt?: string; apiKey?: string }
 ): Promise<GeneratedBackgroundResult> {
-  const geminiKey = process.env.GEMINI_API_KEY;
+  const geminiKey = options?.apiKey || process.env.GEMINI_API_KEY;
   const isUrdu = isUrduOrArabicScript(title);
 
   console.log(`[Thumbnail AI] Initiating 2-Stage Generation for: "${title}"`);
