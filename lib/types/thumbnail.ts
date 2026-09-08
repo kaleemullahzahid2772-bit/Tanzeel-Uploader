@@ -1,4 +1,4 @@
-﻿export type ThumbnailTemplate =
+export type ThumbnailTemplate =
   | 'islamic_premium'
   | 'minimal_quran'
   | 'educational'
@@ -182,4 +182,20 @@ export interface ThumbnailConfig {
   primaryColor?: string;
   accentColor?: string;
   brandName?: string;
+}
+
+export interface StructuredThumbnailPlan {
+  topic: string;
+  category: string;
+  visual_concept: string;
+  main_subject: string;
+  background_concept: string;
+  color_palette: string[];
+  lighting: string;
+  composition: string;
+  mood: string;
+  typography_style: string;
+  text_placement: 'left' | 'right' | 'bottom' | 'center';
+  negative_prompt: string;
+  final_image_prompt: string;
 }

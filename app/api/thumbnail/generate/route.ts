@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { generateThumbnailBackground } from '@/lib/ai/thumbnail-generator';
 
 export async function POST(req: NextRequest) {
@@ -8,8 +8,18 @@ export async function POST(req: NextRequest) {
 
     if (!title || typeof title !== 'string' || title.trim().length === 0) {
       return NextResponse.json(
-        { error: 'Blog Title is required.' },
+        { error: 'Thumbnail title is required. Please provide a valid title.' },
         { status: 400 }
+      );
+    }
+
+    if (!process.env.GEMINI_API_KEY) {
+      return NextResponse.json(
+        {
+          error: 'GEMINI_API_KEY environment variable is missing on the server.',
+          code: 'API_KEY_MISSING',
+        },
+        { status: 500 }
       );
     }
 
@@ -28,11 +38,13 @@ export async function POST(req: NextRequest) {
       data: result,
     });
   } catch (error: unknown) {
-    console.error('Error generating thumbnail background:', error);
+    console.error('[Thumbnail AI] Error in /api/thumbnail/generate:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
     return NextResponse.json(
       {
         error: 'Failed to generate thumbnail background.',
-        details: error instanceof Error ? error.message : String(error),
+        details: errorMessage,
       },
       { status: 500 }
     );

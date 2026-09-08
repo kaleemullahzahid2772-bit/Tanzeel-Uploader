@@ -252,7 +252,7 @@ export async function renderThumbnailCanvas(
 
   // Determine Font Family
   const urduFontFamily = `'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', 'Amiri', serif`;
-  const englishFontFamily = `${headingFont}, 'Playfair Display', 'Cinzel', Georgia, serif`;
+  const englishFontFamily = `'Montserrat', 'Inter', ${headingFont ? `'${headingFont}', ` : ''}'Impact', 'Arial Black', system-ui, sans-serif`;
   const finalFontFamily = isUrdu ? urduFontFamily : englishFontFamily;
 
   // Dynamic Font Sizing

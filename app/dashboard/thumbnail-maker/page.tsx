@@ -21,6 +21,7 @@ import {
   ThumbnailProject,
   BrandKit,
   QualityCheckReport,
+  StructuredThumbnailPlan,
 } from '@/lib/types/thumbnail';
 import {
   renderThumbnailCanvas,
@@ -76,6 +77,10 @@ export default function ThumbnailMakerPage() {
   const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(null);
   const [visualConcept, setVisualConcept] = useState<string | null>(null);
   const [aiProvider, setAiProvider] = useState<string | null>(null);
+  const [modelUsed, setModelUsed] = useState<string | null>(null);
+  const [aiPlan, setAiPlan] = useState<StructuredThumbnailPlan | null>(null);
+  const [geminiNotice, setGeminiNotice] = useState<string | null>(null);
+  const [generationStage, setGenerationStage] = useState<'idle' | 'analyzing' | 'concept' | 'generating' | 'complete'>('idle');
 
   // Manual Adjustments
   const [titlePosition, setTitlePosition] = useState<TitlePosition>('center');
@@ -241,8 +246,21 @@ export default function ThumbnailMakerPage() {
     }
 
     setGenerating(true);
+    setGenerationStage('analyzing');
     setErrorMessage(null);
-    setStatusMessage('Analyzing title semantics, planning composition & generating authentic Islamic visual...');
+    setGeminiNotice(null);
+    setStatusMessage('Analyzing title semantics with Google Gemini reasoning model...');
+
+    // Progress stage timer updates for smooth visual UX
+    const t1 = setTimeout(() => {
+      setGenerationStage('concept');
+      setStatusMessage('Creating visual concept, lighting, and composition plan...');
+    }, 1200);
+
+    const t2 = setTimeout(() => {
+      setGenerationStage('generating');
+      setStatusMessage('Generating high-resolution AI thumbnail visual...');
+    }, 2800);
 
     try {
       const res = await fetch('/api/ai/generate-thumbnail', {
@@ -255,6 +273,9 @@ export default function ThumbnailMakerPage() {
         }),
       });
 
+      clearTimeout(t1);
+      clearTimeout(t2);
+
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.error || 'Failed to generate visual background.');
@@ -266,6 +287,9 @@ export default function ThumbnailMakerPage() {
       setBackgroundImageUrl(result.imageUrl);
       setVisualConcept(result.concept);
       setAiProvider(result.provider);
+      setModelUsed(result.modelUsed);
+      if (result.geminiNotice) setGeminiNotice(result.geminiNotice);
+      if (result.plan) setAiPlan(result.plan);
 
       if (result.recommendedLayout) setCompositionLayout(result.recommendedLayout);
       if (result.recommendedColorGrading) setColorGrading(result.recommendedColorGrading);
@@ -279,9 +303,13 @@ export default function ThumbnailMakerPage() {
         setActiveVariationId(result.variations[0].id);
       }
 
-      setStatusMessage('Graphic design thumbnail generated with exact title preservation!');
+      setGenerationStage('complete');
+      setStatusMessage('Real AI Graphic Thumbnail generated successfully!');
       setTimeout(() => setStatusMessage(null), 5000);
     } catch (err: unknown) {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      setGenerationStage('idle');
       console.error('Thumbnail generation error:', err);
       setErrorMessage(err instanceof Error ? err.message : 'Generation failed. Please try again.');
     } finally {
@@ -926,20 +954,137 @@ export default function ThumbnailMakerPage() {
                 />
 
                 {generating && (
-                  <div className="absolute inset-0 bg-emerald-deep/85 backdrop-blur-xs flex flex-col items-center justify-center text-sand-ivory gap-3 p-6 text-center animate-fadeIn">
+                  <div className="absolute inset-0 bg-emerald-deep/90 backdrop-blur-xs flex flex-col items-center justify-center text-sand-ivory gap-4 p-6 text-center animate-fadeIn z-20">
                     <IslamicLoader />
-                    <p className="font-serif text-sm font-semibold text-gold-light">
-                      Synthesizing Photoshop-Level Art Direction...
-                    </p>
-                    <p className="text-xs text-sand-muted max-w-sm">
-                      Executing Jameel Noori Nastaleeq RTL ligatures & asymmetric lighting.
-                    </p>
+                    <div className="space-y-3 max-w-sm w-full">
+                      <h4 className="font-serif text-sm font-bold text-gold-light">
+                        AI Thumbnail Generation in Progress
+                      </h4>
+                      <div className="space-y-2 bg-emerald-dark/80 border border-gold-primary/20 rounded-xl p-3.5 text-xs text-left shadow-lg">
+                        {/* Stage 1: Analyzing title */}
+                        <div className="flex items-center gap-2.5">
+                          {generationStage === 'analyzing' ? (
+                            <Loader2 className="w-4 h-4 text-gold-primary animate-spin shrink-0" />
+                          ) : (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-primary shrink-0" />
+                          )}
+                          <span className={generationStage === 'analyzing' ? 'text-gold-light font-bold' : 'text-sand-ivory'}>
+                            1. Analyzing title...
+                          </span>
+                        </div>
+
+                        {/* Stage 2: Creating visual concept */}
+                        <div className="flex items-center gap-2.5">
+                          {generationStage === 'concept' ? (
+                            <Loader2 className="w-4 h-4 text-gold-primary animate-spin shrink-0" />
+                          ) : generationStage === 'generating' || generationStage === 'complete' ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-primary shrink-0" />
+                          ) : (
+                            <div className="w-4 h-4 rounded-full border border-sand-muted/40 shrink-0" />
+                          )}
+                          <span
+                            className={
+                              generationStage === 'concept'
+                                ? 'text-gold-light font-bold'
+                                : generationStage === 'generating' || generationStage === 'complete'
+                                ? 'text-sand-ivory'
+                                : 'text-sand-muted'
+                            }
+                          >
+                            2. Creating visual concept...
+                          </span>
+                        </div>
+
+                        {/* Stage 3: Generating thumbnail */}
+                        <div className="flex items-center gap-2.5">
+                          {generationStage === 'generating' ? (
+                            <Loader2 className="w-4 h-4 text-gold-primary animate-spin shrink-0" />
+                          ) : generationStage === 'complete' ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-primary shrink-0" />
+                          ) : (
+                            <div className="w-4 h-4 rounded-full border border-sand-muted/40 shrink-0" />
+                          )}
+                          <span
+                            className={
+                              generationStage === 'generating'
+                                ? 'text-gold-light font-bold'
+                                : generationStage === 'complete'
+                                ? 'text-sand-ivory'
+                                : 'text-sand-muted'
+                            }
+                          >
+                            3. Generating thumbnail...
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
 
-              {/* Visual Concept Caption */}
-              {visualConcept && (
+              {/* Real AI Plan & Art Direction Metadata Card */}
+              {aiPlan && (
+                <div className="p-4 bg-white/90 backdrop-blur-xs rounded-xl border border-gold-primary/30 text-xs text-charcoal-dark space-y-2.5 shadow-xs animate-fadeIn">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-sand-border/60 pb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-md bg-emerald-primary/10 text-emerald-deep font-bold text-[11px] border border-emerald-primary/20">
+                        {aiPlan.category}
+                      </span>
+                      <span className="font-semibold text-emerald-deep text-[11px] truncate max-w-xs">
+                        {aiPlan.topic}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 text-[10px] font-mono text-gold-deep bg-gold-primary/10 px-2 py-0.5 rounded border border-gold-primary/20">
+                      <Sparkles className="w-3 h-3 text-gold-deep" />
+                      <span>{modelUsed || aiProvider || 'Gemini AI'}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="text-[11px] text-charcoal-dark">
+                      <strong className="text-emerald-deep">Visual Concept: </strong>
+                      <span>{aiPlan.visual_concept}</span>
+                    </div>
+                    <div className="text-[11px] text-charcoal-muted">
+                      <strong className="text-emerald-deep">Lighting & Atmosphere: </strong>
+                      <span>{aiPlan.lighting}</span>
+                    </div>
+                  </div>
+
+                  {/* Color Palette Swatches */}
+                  {aiPlan.color_palette && aiPlan.color_palette.length > 0 && (
+                    <div className="flex items-center gap-2 pt-1 border-t border-sand-border/40">
+                      <span className="text-[10px] font-bold text-emerald-deep uppercase tracking-wider">
+                        Color Palette:
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        {aiPlan.color_palette.map((color, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-1 px-1.5 py-0.5 rounded border border-sand-border/70 bg-sand-ivory/50 text-[10px] font-mono"
+                          >
+                            <span
+                              className="w-3 h-3 rounded-full border border-black/10 shadow-2xs"
+                              style={{ backgroundColor: color }}
+                            />
+                            <span>{color}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {geminiNotice && (
+                    <div className="text-[10px] text-emerald-deep/80 bg-emerald-primary/5 p-2 rounded-lg border border-emerald-primary/15 mt-1">
+                      {geminiNotice}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Visual Concept Fallback Caption (if no full aiPlan yet) */}
+              {!aiPlan && visualConcept && (
                 <div className="p-3 bg-white/75 rounded-xl border border-sand-border/60 text-xs text-charcoal-muted flex items-start gap-2">
                   <Palette className="w-4 h-4 text-gold-deep shrink-0 mt-0.5" />
                   <div>
