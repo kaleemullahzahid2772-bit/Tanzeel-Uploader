@@ -49,7 +49,9 @@ export function isUrduScript(text: string): boolean {
 const GOLD_KEYWORDS = new Set([
   'نماز', 'نمازی', 'قرآن', 'اللہ', 'رسول', 'نبی', 'سنت', 'سجدہ', 'مسجد', 'حلال', 'حرام', 'سترہ',
   'علم', 'رمضان', 'روزہ', 'دعا', 'ذکر', 'تسبیح', 'حدیث', 'فتویٰ', 'مسئلہ', 'اسلام', 'مسلمان',
-  'quran', 'salah', 'namaz', 'prophet', 'muhammad', 'allah', 'sunnah', 'ramadan', 'islam', 'hadith'
+  'کاروبار', 'پیسہ', 'آمدنی', 'کامیابی', 'سیکھیں', 'طریقہ', 'راز',
+  'quran', 'salah', 'namaz', 'prophet', 'muhammad', 'allah', 'sunnah', 'ramadan', 'islam', 'hadith',
+  'business', 'online', 'pakistan', 'money', 'start', 'earn', 'growth', 'mistakes', 'success', 'ai', 'tools'
 ]);
 
 /**

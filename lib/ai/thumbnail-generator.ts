@@ -81,12 +81,12 @@ Return ONLY a valid JSON object matching this schema with no markdown ticks:
   "final_image_prompt": "string"
 }`;
 
-  // Candidate models in order of capability & speed
+  // Candidate models in order of capability & speed (Google Gemini Reasoning Models)
   const textModels = [
+    'gemini-3.6-flash',
     'gemini-3.5-flash',
     'gemini-3.7-flash',
     'gemini-3.8-flash',
-    'gemini-flash-latest',
   ];
 
   let lastError: unknown = null;
@@ -109,6 +109,7 @@ Return ONLY a valid JSON object matching this schema with no markdown ticks:
         const parsed = JSON.parse(cleaned) as StructuredThumbnailPlan;
 
         if (parsed.final_image_prompt && parsed.visual_concept) {
+          console.log(`[Thumbnail AI] Stage 1 Success with model "${model}": Topic="${parsed.topic}", Category="${parsed.category}"`);
           // Normalize fields
           return {
             topic: parsed.topic || title,
@@ -145,9 +146,47 @@ Return ONLY a valid JSON object matching this schema with no markdown ticks:
  */
 function buildContextualBackupPlan(title: string, isUrdu: boolean): StructuredThumbnailPlan {
   const lower = title.toLowerCase();
-  const isYoutubeTech = lower.includes('youtube') || lower.includes('grow') || lower.includes('views') || lower.includes('channel') || lower.includes('video');
-  const isParenting = lower.includes('parent') || lower.includes('mistake') || lower.includes('child') || lower.includes('teach') || lower.includes('والدین') || lower.includes('بچے');
-  const isQuran = lower.includes('quran') || lower.includes('قرآن') || lower.includes('تلاوت') || lower.includes('تجوید') || lower.includes('حافظ');
+  const isBusiness = lower.includes('business') || lower.includes('online business') || lower.includes('karobar') || lower.includes('کاروبار') || lower.includes('تجارت') || lower.includes('money') || lower.includes('earn') || lower.includes('startup') || lower.includes('ecommerce') || lower.includes('e-commerce');
+  const isYoutubeTech = lower.includes('youtube') || lower.includes('grow') || lower.includes('views') || lower.includes('channel') || lower.includes('video') || lower.includes('subscriber');
+  const isAiTools = lower.includes('ai') || lower.includes('tools') || lower.includes('artificial intelligence') || lower.includes('tech') || lower.includes('chatgpt');
+  const isParenting = lower.includes('parent') || lower.includes('mistake') || lower.includes('child') || lower.includes('teach') || lower.includes('والدین') || lower.includes('بچے') || lower.includes('تربیت');
+  const isQuran = lower.includes('quran') || lower.includes('قرآن') || lower.includes('تلاوت') || lower.includes('تجوید') || lower.includes('حافظ') || lower.includes('islam') || lower.includes('tahajjud') || lower.includes('تهجد') || lower.includes('نماز');
+
+  if (isBusiness) {
+    return {
+      topic: 'Online Business & Digital Entrepreneurship',
+      category: 'Business & Finance',
+      visual_concept: 'Successful modern Pakistani digital entrepreneur working in a sleek contemporary workspace with laptop and smartphone, showcasing e-commerce analytics',
+      main_subject: 'Confident professional South Asian entrepreneur focused intently on a laptop screen displaying positive financial growth metrics',
+      background_concept: 'Modern stylish loft office with floor-to-ceiling windows, subtle warm evening ambient light, minimalist wood desk and indoor plants',
+      color_palette: ['#00B894', '#0984E3', '#2D3436'],
+      lighting: 'Cinematic rim lighting with dramatic golden hour glow through windows and subtle blue screen reflection',
+      composition: isUrdu ? 'Subject on the left, expansive dark negative space on the right for title' : 'Subject on the right, expansive dark negative space on the left for title',
+      mood: 'Prestigious, confident, visionary, profitable',
+      typography_style: 'Bold impact commercial typography with gold keyword highlights',
+      text_placement: isUrdu ? 'right' : 'left',
+      negative_prompt: 'text, letters, words, blurry, distorted hands, cartoon, low resolution, crowded background, watermark',
+      final_image_prompt: 'Cinematic, ultra-photorealistic 8k commercial photograph of a handsome Pakistani young businessman in smart casual attire sitting at a sleek mahogany desk in a modern Lahore high-rise office. Working on an open modern laptop with warm golden hour sunlight streaming through panoramic windows, shallow depth of field, clear dark negative space on the ' + (isUrdu ? 'right' : 'left') + ' side, Hasselblad H6D-100c medium format camera, strictly no text.',
+    };
+  }
+
+  if (isAiTools) {
+    return {
+      topic: 'Artificial Intelligence & Future Tech Tools',
+      category: 'Technology & AI',
+      visual_concept: 'Futuristic glowing AI neural network interfaces and holographic tool widgets floating around a modern workstation',
+      main_subject: 'Dynamic glowing 3D holographic AI interface sphere with sleek metallic circuits and data visualization nodes',
+      background_concept: 'High-tech dark futuristic laboratory with neon cyan and electric violet ambient luminescence',
+      color_palette: ['#6C5CE7', '#00CEC9', '#2D3436'],
+      lighting: 'Bioluminescent neon cyber lighting with glowing particles and dramatic specular highlights',
+      composition: isUrdu ? 'Focal holographic AI on the left, clear dark space on the right' : 'Focal holographic AI on the right, clear dark space on the left',
+      mood: 'Cutting-edge, revolutionary, intriguing',
+      typography_style: 'Ultra-modern geometric typography with electric cyan accents',
+      text_placement: isUrdu ? 'right' : 'left',
+      negative_prompt: 'text, words, watermark, blurry, deformed, cartoon, oversaturated',
+      final_image_prompt: 'A breathtaking 8k cinematic photograph of a glowing translucent futuristic AI orb surrounded by holographic interactive charts in a dark cybernetic studio. Electric violet and cyan volumetric lighting, cinematic lens flare, clean negative space on the ' + (isUrdu ? 'right' : 'left') + ' side, high contrast editorial style, strictly no text.',
+    };
+  }
 
   if (isYoutubeTech) {
     return {
@@ -158,12 +197,12 @@ function buildContextualBackupPlan(title: string, isUrdu: boolean): StructuredTh
       background_concept: 'Sleek dark futuristic studio with professional camera lenses, soft atmospheric haze, and subtle RGB lighting',
       color_palette: ['#FF0055', '#00F0FF', '#0D0D11'],
       lighting: 'High-contrast cyberpunk studio lighting, glowing exponential graph illumination, dramatic backlight',
-      composition: 'Rule of thirds: creator on right looking left, vast clean negative space on left for bold title text',
+      composition: isUrdu ? 'Creator on left, vast clean negative space on right for bold title text' : 'Creator on right, vast clean negative space on left for bold title text',
       mood: 'Urgent, high-tech, ambitious, inspiring',
       typography_style: 'Ultra-bold geometric sans-serif with high contrast white and neon yellow accents',
-      text_placement: 'left',
+      text_placement: isUrdu ? 'right' : 'left',
       negative_prompt: 'text, letters, watermark, low quality, blurry, distorted face, oversaturated, deformed hands',
-      final_image_prompt: 'Cinematic, ultra-detailed 8k photograph of a professional content creator in a dark futuristic studio looking in amazement at a glowing holographic 3D bar chart with an exponential upward arrow. Neon cyan and magenta rim lighting, shallow depth of field, clean dark negative space on the left side, Hasselblad medium format camera quality, strictly no text.',
+      final_image_prompt: 'Cinematic, ultra-detailed 8k photograph of a professional content creator in a dark futuristic studio looking in amazement at a glowing holographic 3D bar chart with an exponential upward arrow. Neon cyan and magenta rim lighting, shallow depth of field, clean dark negative space on the ' + (isUrdu ? 'right' : 'left') + ' side, Hasselblad medium format camera quality, strictly no text.',
     };
   }
 
@@ -203,13 +242,13 @@ function buildContextualBackupPlan(title: string, isUrdu: boolean): StructuredTh
     };
   }
 
-  // Default versatile high-impact concept
+  // Default versatile high-impact concept dynamically synthesized for the specific title
   return {
     topic: title,
-    category: 'Educational & Inspirational',
-    visual_concept: 'Cinematic high-contrast editorial scene with striking atmospheric lighting and focal depth',
-    main_subject: 'Dynamic central focal element related to ' + title + ' with rich texture and depth',
-    background_concept: 'Deep atmospheric environment with sophisticated ambient gradients and bokeh',
+    category: 'Educational & Strategic',
+    visual_concept: 'High-contrast cinematic photography depicting the central theme of "' + title + '"',
+    main_subject: 'Dynamic central focal element visually representing the concept of ' + title,
+    background_concept: 'Atmospheric depth with professional studio bokeh and complementary gradient illumination',
     color_palette: ['#0F4C3A', '#C9A227', '#0A192F'],
     lighting: 'Dramatic directional rim lighting with volumetric shadows for maximum visual pop',
     composition: isUrdu ? 'Focal point on the left side, uncluttered dark negative space on the right' : 'Focal point on the right side, uncluttered dark negative space on the left',
