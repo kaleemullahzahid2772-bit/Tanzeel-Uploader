@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
@@ -245,7 +245,7 @@ export default function ThumbnailMakerPage() {
     setStatusMessage('Analyzing title semantics, planning composition & generating authentic Islamic visual...');
 
     try {
-      const res = await fetch('/api/thumbnail/generate', {
+      const res = await fetch('/api/ai/generate-thumbnail', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -309,7 +309,7 @@ export default function ThumbnailMakerPage() {
     setStatusMessage('Regenerating new visual composition (Title and typography remain 100% untouched)...');
 
     try {
-      const res = await fetch('/api/thumbnail/generate', {
+      const res = await fetch('/api/ai/generate-thumbnail', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

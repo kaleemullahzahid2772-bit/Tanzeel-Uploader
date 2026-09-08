@@ -1,4 +1,4 @@
-﻿import {
+import {
   ThumbnailTemplate,
   OverlayLevel,
   DesignStyle,
@@ -31,7 +31,7 @@ export interface GeneratedBackgroundResult {
   imageUrl: string;
   prompt: string;
   concept: string;
-  provider: 'imagen' | 'openai' | 'pollinations' | 'curated_library';
+  provider: 'gemini' | 'imagen' | 'openai' | 'pollinations' | 'curated_library';
   isUrdu: boolean;
   recommendedTemplate: ThumbnailTemplate;
   recommendedStyle: DesignStyle;
@@ -60,7 +60,7 @@ const CURATED_ISLAMIC_LIBRARY: {
   {
     category: 'salah',
     keywords: [
-      'نماز', 'نمازی', 'سجدہ', 'مسجد', 'رکوع', 'فجر', 'جمعہ', 'قبلہ', 'صف', 'سترہ',
+      '????', '?????', '????', '????', '????', '???', '????', '????', '??', '????',
       'salah', 'namaz', 'prayer', 'pray', 'sujood', 'ruku', 'fajr', 'jummah', 'masjid', 'mosque'
     ],
     url: 'https://images.unsplash.com/photo-1542816417-0983c9c9ad53?auto=format&fit=crop&w=1600&q=85',
@@ -69,7 +69,7 @@ const CURATED_ISLAMIC_LIBRARY: {
   {
     category: 'quran',
     keywords: [
-      'قرآن', 'تلاوت', 'آیت', 'سورۃ', 'تفسیر', 'حفظ', 'قاری', 'مصحف', 'قرآنی',
+      '????', '?????', '???', '????', '?????', '???', '????', '????', '?????',
       'quran', 'koran', 'ayat', 'surah', 'read', 'recit', 'tilawat', 'tafseer', 'hafiz'
     ],
     url: 'https://images.unsplash.com/photo-1609599006353-e629aaabfeae?auto=format&fit=crop&w=1600&q=85',
@@ -78,7 +78,7 @@ const CURATED_ISLAMIC_LIBRARY: {
   {
     category: 'prophet_history',
     keywords: [
-      'نبی', 'رسول', 'محمد', 'سیرت', 'صحابہ', 'مدینہ', 'مکہ', 'تاریخ', 'ہجرت', 'غزوہ',
+      '???', '????', '????', '????', '?????', '?????', '???', '?????', '????', '????',
       'prophet', 'muhammad', 'rasool', 'nabi', 'seerah', 'sahaba', 'madinah', 'makkah', 'history'
     ],
     url: 'https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?auto=format&fit=crop&w=1600&q=85',
@@ -87,7 +87,7 @@ const CURATED_ISLAMIC_LIBRARY: {
   {
     category: 'dua_dhikr',
     keywords: [
-      'دعا', 'ذکر', 'تسبیح', 'استغفار', 'توبہ', 'وظیفہ', 'روحانی', 'دل', 'سکون',
+      '???', '???', '?????', '???????', '????', '?????', '??????', '??', '????',
       'dua', 'dhikr', 'tasbih', 'forgiveness', 'istighfar', 'spiritual', 'peace', 'heart', 'allah'
     ],
     url: 'https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&w=1600&q=85',
@@ -96,7 +96,7 @@ const CURATED_ISLAMIC_LIBRARY: {
   {
     category: 'ramadan',
     keywords: [
-      'رمضان', 'روزہ', 'افطار', 'سحری', 'عید', 'تراویح', 'اعتکاف', 'شب قدر',
+      '?????', '????', '?????', '????', '???', '??????', '??????', '?? ???',
       'ramadan', 'fasting', 'roza', 'iftar', 'suhoor', 'eid', 'taraweeh', 'laylat'
     ],
     url: 'https://images.unsplash.com/photo-1590076215667-873d20755a6d?auto=format&fit=crop&w=1600&q=85',
@@ -105,7 +105,7 @@ const CURATED_ISLAMIC_LIBRARY: {
   {
     category: 'knowledge_fiqh',
     keywords: [
-      'مسئلہ', 'فتویٰ', 'علم', 'درس', 'کتاب', 'احکام', 'حلال', 'حرام', 'شرعی', 'شریعت', 'اسباق', 'رہنمائی',
+      '?????', '?????', '???', '???', '????', '?????', '????', '????', '????', '?????', '?????', '???????',
       'knowledge', 'lesson', 'learn', 'education', 'study', 'ilm', 'book', 'fiqh', 'fatwa', 'rules', 'guide'
     ],
     url: 'https://images.unsplash.com/photo-1564769625905-50e93615e769?auto=format&fit=crop&w=1600&q=85',
@@ -114,7 +114,7 @@ const CURATED_ISLAMIC_LIBRARY: {
   {
     category: 'general_islamic',
     keywords: [
-      'اسلام', 'مسلمان', 'دین', 'اخلاق', 'سنت', 'صدقہ', 'زکوٰۃ', 'معاشرہ', 'زندگی',
+      '?????', '??????', '???', '?????', '???', '????', '?????', '??????', '?????',
       'islam', 'muslim', 'deen', 'character', 'akhlaq', 'sunnah', 'charity', 'zakat', 'family', 'life'
     ],
     url: 'https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&w=1600&q=85',
@@ -293,7 +293,103 @@ export function analyzeTitleAndFormulateConcept(title: string): VisualConceptRes
 }
 
 /**
- * Generates the background image with real AI or high-res curated assets,
+ * Uses Google Gemini semantic AI to analyze the title and formulate
+ * an exact Photoshop-grade visual prompt.
+ */
+export async function formulateGeminiVisualPrompt(
+  title: string,
+  isUrdu: boolean,
+  geminiKey: string
+): Promise<string | null> {
+  try {
+    const { GoogleGenAI } = await import('@google/genai');
+    const ai = new GoogleGenAI({ apiKey: geminiKey });
+
+    const systemInstruction =
+      'You are an expert Islamic art director designing high-impact YouTube and WordPress blog featured thumbnails. ' +
+      'Given an article title, you formulate a vivid, photorealistic prompt for generating a background visual asset. ' +
+      'Rules: ' +
+      '1. Strictly ZERO human faces, ZERO women, ZERO girls, ZERO prophets or companions. ' +
+      '2. Strictly ZERO text, letters, calligraphy, or symbols in the image. ' +
+      '3. Must leave clean, unobstructed negative space on the ' + (isUrdu ? 'right' : 'left') + ' side for typography overlay. ' +
+      '4. Output ONLY the descriptive English prompt without commentary or quotes.';
+
+    console.log('[Thumbnail AI] Calling Gemini Semantic Art Director for title:', title);
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-flash-latest',
+      contents: `${systemInstruction}\n\nTitle: "${title}"`,
+    });
+
+    const generatedPrompt = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    if (generatedPrompt && generatedPrompt.length > 20) {
+      console.log('[Thumbnail AI] Gemini Art Director formulated visual prompt successfully.');
+      return generatedPrompt;
+    }
+  } catch (err: unknown) {
+    console.warn('[Thumbnail AI] Gemini Semantic Art Director note:', err instanceof Error ? err.message : String(err));
+  }
+  return null;
+}
+
+/**
+ * Attempts direct image generation using Google Gemini image generation models
+ * (e.g. gemini-3.1-flash-image, gemini-2.5-flash-image, gemini-3.1-flash-lite-image).
+ */
+async function callGeminiDirectImageGeneration(
+  prompt: string,
+  geminiKey: string
+): Promise<{ imageUrl: string; modelUsed: string } | null> {
+  const models = [
+    'gemini-3.1-flash-image',
+    'gemini-2.5-flash-image',
+    'gemini-3.1-flash-lite-image',
+    'gemini-3-pro-image',
+  ];
+
+  for (const model of models) {
+    try {
+      console.log(`[Thumbnail AI] Attempting Gemini Image Model: ${model}`);
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+      const payload = {
+        contents: [{ parts: [{ text: `${prompt}. Strictly NO text, NO women, NO faces.` }] }],
+        generationConfig: {
+          responseModalities: ['IMAGE'],
+        },
+      };
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        const candidate = json.candidates?.[0];
+        const part = candidate?.content?.parts?.[0];
+        if (part?.inlineData?.data) {
+          const mimeType = part.inlineData.mimeType || 'image/jpeg';
+          console.log(`[Thumbnail AI] Successfully received image from Gemini model: ${model}`);
+          return {
+            imageUrl: `data:${mimeType};base64,${part.inlineData.data}`,
+            modelUsed: model,
+          };
+        }
+      } else {
+        const errText = await res.text();
+        console.warn(`[Thumbnail AI] Gemini model ${model} response ${res.status}:`, errText.slice(0, 150));
+      }
+    } catch (err) {
+      console.warn(`[Thumbnail AI] Gemini model ${model} request error:`, err);
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Generates the background image with real AI,
  * returning full art direction and 3 variations.
  */
 export async function generateThumbnailBackground(
@@ -302,15 +398,50 @@ export async function generateThumbnailBackground(
   height: number = 892,
   options?: { customPrompt?: string }
 ): Promise<GeneratedBackgroundResult> {
+  console.log('[Thumbnail AI] Starting generation for title:', title);
   const concept = analyzeTitleAndFormulateConcept(title);
-  const finalPrompt = options?.customPrompt || concept.positivePrompt;
 
-  const openaiKey = process.env.OPENAI_API_KEY;
   const geminiKey = process.env.GEMINI_API_KEY;
+  const openaiKey = process.env.OPENAI_API_KEY;
 
-  // Provider 1: OpenAI DALL-E 3
+  let visualPrompt = options?.customPrompt || concept.positivePrompt;
+
+  // Step 1: Enrich visual prompt using Gemini Semantic Art Director if key is available
+  if (geminiKey && !options?.customPrompt) {
+    const enriched = await formulateGeminiVisualPrompt(title, concept.isUrdu, geminiKey);
+    if (enriched) {
+      visualPrompt = enriched;
+    }
+  }
+
+  // Step 2: Attempt Google Gemini Direct Image Generation (gemini-3.1-flash-image)
+  if (geminiKey) {
+    console.log('[Thumbnail AI] Calling Gemini Image Generation with key...');
+    const geminiImg = await callGeminiDirectImageGeneration(visualPrompt, geminiKey);
+    if (geminiImg) {
+      console.log('[Thumbnail AI] Image received from Gemini successfully!');
+      return {
+        imageUrl: geminiImg.imageUrl,
+        prompt: visualPrompt,
+        concept: `${concept.conceptSummary} (Model: ${geminiImg.modelUsed})`,
+        provider: 'gemini',
+        isUrdu: concept.isUrdu,
+        recommendedTemplate: concept.recommendedTemplate,
+        recommendedStyle: concept.recommendedStyle,
+        recommendedLayout: concept.recommendedLayout,
+        recommendedColorGrading: concept.recommendedColorGrading,
+        recommendedBorder: concept.recommendedBorder,
+        recommendedTypography: concept.recommendedTypography,
+        recommendedOverlay: concept.recommendedOverlay,
+        variations: concept.variations,
+      };
+    }
+  }
+
+  // Step 3: OpenAI DALL-E 3 (if configured)
   if (openaiKey) {
     try {
+      console.log('[Thumbnail AI] Calling OpenAI DALL-E 3...');
       const response = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST',
         headers: {
@@ -319,7 +450,7 @@ export async function generateThumbnailBackground(
         },
         body: JSON.stringify({
           model: 'dall-e-3',
-          prompt: `${finalPrompt}. Absolute requirement: Do NOT draw any text, letters, or fonts. Do NOT depict any women, girls, or human faces.`,
+          prompt: `${visualPrompt}. Absolute requirement: Do NOT draw any text, letters, or fonts. Do NOT depict any women, girls, or human faces.`,
           n: 1,
           size: width >= height ? '1792x1024' : '1024x1024',
           quality: 'standard',
@@ -330,9 +461,10 @@ export async function generateThumbnailBackground(
         const data = await response.json();
         const imageUrl = data.data?.[0]?.url;
         if (imageUrl) {
+          console.log('[Thumbnail AI] Image received from OpenAI DALL-E 3');
           return {
             imageUrl,
-            prompt: finalPrompt,
+            prompt: visualPrompt,
             concept: concept.conceptSummary,
             provider: 'openai',
             isUrdu: concept.isUrdu,
@@ -348,96 +480,48 @@ export async function generateThumbnailBackground(
         }
       }
     } catch (err) {
-      console.warn('OpenAI Image generation notice:', err);
+      console.warn('[Thumbnail AI] OpenAI Image generation note:', err);
     }
   }
 
-  // Provider 2: Google Imagen 3
-  if (geminiKey) {
-    try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${geminiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            instances: [{ prompt: finalPrompt }],
-            parameters: {
-              sampleCount: 1,
-              aspectRatio: width >= height ? '16:9' : '1:1',
-              negativePrompt: STRICT_ISLAMIC_NEGATIVE_PROMPT,
-            },
-          }),
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        const b64 = data.predictions?.[0]?.bytesBase64Encoded;
-        if (b64) {
-          const imageUrl = `data:image/jpeg;base64,${b64}`;
-          return {
-            imageUrl,
-            prompt: finalPrompt,
-            concept: concept.conceptSummary,
-            provider: 'imagen',
-            isUrdu: concept.isUrdu,
-            recommendedTemplate: concept.recommendedTemplate,
-            recommendedStyle: concept.recommendedStyle,
-            recommendedLayout: concept.recommendedLayout,
-            recommendedColorGrading: concept.recommendedColorGrading,
-            recommendedBorder: concept.recommendedBorder,
-            recommendedTypography: concept.recommendedTypography,
-            recommendedOverlay: concept.recommendedOverlay,
-            variations: concept.variations,
-          };
-        }
-      }
-    } catch (err) {
-      console.warn('Google Imagen generation notice:', err);
-    }
-  }
-
-  // Provider 3: Pollinations AI / Flux
+  // Step 4: High-Performance AI Diffusion (Pollinations / Flux)
   try {
+    console.log('[Thumbnail AI] Requesting AI Diffusion visual render...');
     const seed = Math.floor(Math.random() * 1000000);
     const pollW = width >= 1400 ? 1280 : width;
     const pollH = Math.round((pollW * height) / width);
-    const encodedPrompt = encodeURIComponent(
-      `${finalPrompt} (Strictly no text, no woman, no faces, Islamic architectural masterwork)`
-    );
+    const cleanPrompt = `${visualPrompt} (cinematic lighting, ultra-high resolution photography, negative space on ${concept.isUrdu ? 'right' : 'left'}, strictly no text, no woman, no faces, Islamic architectural masterwork)`;
+    const encodedPrompt = encodeURIComponent(cleanPrompt);
     const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${pollW}&height=${pollH}&seed=${seed}&nologo=true&model=flux`;
 
-    const testRes = await fetch(pollinationsUrl, { method: 'HEAD', signal: AbortSignal.timeout(4000) });
-    if (testRes.ok) {
-      return {
-        imageUrl: pollinationsUrl,
-        prompt: finalPrompt,
-        concept: concept.conceptSummary,
-        provider: 'pollinations',
-        isUrdu: concept.isUrdu,
-        recommendedTemplate: concept.recommendedTemplate,
-        recommendedStyle: concept.recommendedStyle,
-        recommendedLayout: concept.recommendedLayout,
-        recommendedColorGrading: concept.recommendedColorGrading,
-        recommendedBorder: concept.recommendedBorder,
-        recommendedTypography: concept.recommendedTypography,
-        recommendedOverlay: concept.recommendedOverlay,
-        variations: concept.variations,
-      };
-    }
+    return {
+      imageUrl: pollinationsUrl,
+      prompt: visualPrompt,
+      concept: concept.conceptSummary,
+      provider: 'pollinations',
+      isUrdu: concept.isUrdu,
+      recommendedTemplate: concept.recommendedTemplate,
+      recommendedStyle: concept.recommendedStyle,
+      recommendedLayout: concept.recommendedLayout,
+      recommendedColorGrading: concept.recommendedColorGrading,
+      recommendedBorder: concept.recommendedBorder,
+      recommendedTypography: concept.recommendedTypography,
+      recommendedOverlay: concept.recommendedOverlay,
+      variations: concept.variations,
+    };
   } catch (err) {
-    console.warn('Pollinations connection notice, using curated 4K Islamic asset:', err);
+    console.warn('[Thumbnail AI] Diffusion engine notice:', err);
   }
 
-  // Provider 4: Guaranteed High-Res Curated Islamic Architectural Asset
+  // Step 5: Guaranteed Curated High-Res Islamic Architecture Asset
+  console.log('[Thumbnail AI] Using verified high-res Islamic asset fallback');
   const matched =
     CURATED_ISLAMIC_LIBRARY.find((item) => item.category === concept.category) ||
     CURATED_ISLAMIC_LIBRARY[0];
 
   return {
     imageUrl: matched.url,
-    prompt: finalPrompt,
+    prompt: visualPrompt,
     concept: `${concept.conceptSummary} (${matched.description})`,
     provider: 'curated_library',
     isUrdu: concept.isUrdu,
