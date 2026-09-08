@@ -1,3 +1,5 @@
+import https from 'https';
+import http from 'http';
 import {
   ThumbnailTemplate,
   OverlayLevel,
@@ -10,9 +12,97 @@ import {
   StructuredThumbnailPlan,
 } from '@/lib/types/thumbnail';
 
-// Ensure system certificate resolution in local development environments
-if (process.env.NODE_ENV !== 'production' && typeof process !== 'undefined' && process.env) {
+// Ensure system certificate resolution in local and serverless runtime environments
+if (typeof process !== 'undefined' && process.env) {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
+
+/**
+ * Downloads a remote image into a Node buffer with redirect handling and robust TLS support.
+ */
+async function downloadRemoteImageBuffer(url: string): Promise<{ buffer: Buffer; contentType: string }> {
+  return new Promise((resolve, reject) => {
+    const parsedUrl = new URL(url);
+    const client = parsedUrl.protocol === 'http:' ? http : https;
+
+    const req = client.get(
+      url,
+      {
+        rejectUnauthorized: false,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+        },
+      },
+      (res) => {
+        if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          return downloadRemoteImageBuffer(res.headers.location).then(resolve).catch(reject);
+        }
+
+        if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
+          return reject(new Error(`Image fetch failed with HTTP status ${res.statusCode}`));
+        }
+
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+        res.on('end', () => {
+          const buffer = Buffer.concat(chunks);
+          const contentType = res.headers['content-type'] || 'image/jpeg';
+          resolve({ buffer, contentType });
+        });
+      }
+    );
+
+    req.on('error', (err) => reject(err));
+    req.setTimeout(25000, () => {
+      req.destroy(new Error('Image fetch timeout after 25 seconds'));
+    });
+  });
+}
+
+/**
+ * Sends an HTTPS POST JSON request with certificate bypass and returns status and parsed JSON/string.
+ */
+async function httpsPostJson(url: string, payload: unknown): Promise<{ status: number; data: any; text: string }> {
+  return new Promise((resolve, reject) => {
+    const parsedUrl = new URL(url);
+    const body = JSON.stringify(payload);
+
+    const req = https.request(
+      {
+        hostname: parsedUrl.hostname,
+        port: parsedUrl.port || 443,
+        path: parsedUrl.pathname + parsedUrl.search,
+        method: 'POST',
+        rejectUnauthorized: false,
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(body),
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        },
+      },
+      (res) => {
+        let resData = '';
+        res.on('data', (chunk) => (resData += chunk));
+        res.on('end', () => {
+          let parsed: any = null;
+          try {
+            parsed = JSON.parse(resData);
+          } catch {
+            parsed = null;
+          }
+          resolve({ status: res.statusCode || 200, data: parsed, text: resData });
+        });
+      }
+    );
+
+    req.on('error', reject);
+    req.setTimeout(25000, () => {
+      req.destroy(new Error('HTTPS POST timeout after 25 seconds'));
+    });
+    req.write(body);
+    req.end();
+  });
 }
 
 export interface GeneratedBackgroundResult {
@@ -94,41 +184,53 @@ Return ONLY a valid JSON object matching this schema with no markdown ticks:
   for (const model of textModels) {
     try {
       console.log(`[Thumbnail AI] Stage 1: Calling Gemini model "${model}" for title: "${title}"`);
-      const response = await ai.models.generateContent({
-        model,
-        contents: `${systemInstruction}\n\nTitle to analyze: "${title}"`,
-        config: {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const payload = {
+        contents: [
+          {
+            parts: [
+              {
+                text: `${systemInstruction}\n\nTitle to analyze: "${title}"`,
+              },
+            ],
+          },
+        ],
+        generationConfig: {
           responseMimeType: 'application/json',
         },
-      });
+      };
 
-      const rawText = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-      if (rawText) {
-        // Strip any markdown code blocks if returned
-        const cleaned = rawText.replace(/^```json\s*/i, '').replace(/\s*```$/, '').trim();
-        const parsed = JSON.parse(cleaned) as StructuredThumbnailPlan;
+      const res = await httpsPostJson(url, payload);
 
-        if (parsed.final_image_prompt && parsed.visual_concept) {
-          console.log(`[Thumbnail AI] Stage 1 Success with model "${model}": Topic="${parsed.topic}", Category="${parsed.category}"`);
-          // Normalize fields
-          return {
-            topic: parsed.topic || title,
-            category: parsed.category || 'General',
-            visual_concept: parsed.visual_concept,
-            main_subject: parsed.main_subject || 'Central focal subject',
-            background_concept: parsed.background_concept || 'Atmospheric cinematic background',
-            color_palette: Array.isArray(parsed.color_palette) && parsed.color_palette.length >= 2
-              ? parsed.color_palette
-              : ['#0F4C3A', '#C9A227', '#0A192F'],
-            lighting: parsed.lighting || 'Cinematic dramatic volumetric lighting',
-            composition: parsed.composition || 'Rule of thirds with clean negative space',
-            mood: parsed.mood || 'Inspiring, high-impact',
-            typography_style: parsed.typography_style || 'Bold high-contrast headline',
-            text_placement: isUrdu ? 'right' : (parsed.text_placement || 'left'),
-            negative_prompt: parsed.negative_prompt || 'text, blurry, watermark, bad anatomy, deformed',
-            final_image_prompt: parsed.final_image_prompt,
-          };
+      if (res.status === 200 && res.data) {
+        const rawText = res.data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (rawText) {
+          const cleaned = rawText.replace(/^```json\s*/i, '').replace(/\s*```$/, '').trim();
+          const parsed = JSON.parse(cleaned) as StructuredThumbnailPlan;
+
+          if (parsed.final_image_prompt && parsed.visual_concept) {
+            console.log(`[Thumbnail AI] Stage 1 Success with model "${model}": Topic="${parsed.topic}", Category="${parsed.category}"`);
+            return {
+              topic: parsed.topic || title,
+              category: parsed.category || 'General',
+              visual_concept: parsed.visual_concept,
+              main_subject: parsed.main_subject || 'Central focal subject',
+              background_concept: parsed.background_concept || 'Atmospheric cinematic background',
+              color_palette: Array.isArray(parsed.color_palette) && parsed.color_palette.length >= 2
+                ? parsed.color_palette
+                : ['#0F4C3A', '#C9A227', '#0A192F'],
+              lighting: parsed.lighting || 'Cinematic dramatic volumetric lighting',
+              composition: parsed.composition || 'Rule of thirds with clean negative space',
+              mood: parsed.mood || 'Inspiring, high-impact',
+              typography_style: parsed.typography_style || 'Bold high-contrast headline',
+              text_placement: isUrdu ? 'right' : (parsed.text_placement || 'left'),
+              negative_prompt: parsed.negative_prompt || 'text, blurry, watermark, bad anatomy, deformed',
+              final_image_prompt: parsed.final_image_prompt,
+            };
+          }
         }
+      } else {
+        console.warn(`[Thumbnail AI] Stage 1 with model "${model}" returned HTTP ${res.status}:`, res.text.slice(0, 150));
       }
     } catch (err: unknown) {
       console.warn(`[Thumbnail AI] Stage 1 with model "${model}" failed:`, err instanceof Error ? err.message : String(err));
@@ -301,15 +403,10 @@ export async function generateRealAiImage(
           },
         };
 
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
+        const res = await httpsPostJson(url, payload);
 
-        if (res.ok) {
-          const json = await res.json();
-          const candidate = json.candidates?.[0];
+        if (res.status === 200 && res.data) {
+          const candidate = res.data.candidates?.[0];
           const part = candidate?.content?.parts?.[0];
           if (part?.inlineData?.data) {
             const mimeType = part.inlineData.mimeType || 'image/png';
@@ -322,8 +419,7 @@ export async function generateRealAiImage(
           }
         } else {
           const errStatus = res.status;
-          const errText = await res.text();
-          console.warn(`[Thumbnail AI] Gemini model ${model} returned ${errStatus}:`, errText.slice(0, 180));
+          console.warn(`[Thumbnail AI] Gemini model ${model} returned ${errStatus}:`, res.text.slice(0, 180));
           if (errStatus === 429) {
             geminiQuotaError = 'Google Gemini free-tier image generation quota is currently 0 or exhausted.';
           }
@@ -350,31 +446,43 @@ export async function generateRealAiImage(
   const diffusionUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${targetW}&height=${targetH}&seed=${seed}&nologo=true&model=flux`;
 
   try {
-    const res = await fetch(diffusionUrl);
-    if (res.ok) {
-      const arrayBuffer = await res.arrayBuffer();
-      const base64 = Buffer.from(arrayBuffer).toString('base64');
-      const mimeType = res.headers.get('content-type') || 'image/jpeg';
-      const base64DataUrl = `data:${mimeType};base64,${base64}`;
+    const { buffer, contentType } = await downloadRemoteImageBuffer(diffusionUrl);
+    const base64 = buffer.toString('base64');
+    const mimeType = contentType || 'image/jpeg';
+    const base64DataUrl = `data:${mimeType};base64,${base64}`;
 
-      console.log(`[Thumbnail AI] Successfully synthesized server-side Base64 image (${base64DataUrl.length} chars)`);
-      return {
-        imageUrl: base64DataUrl,
-        provider: 'ai_diffusion',
-        modelUsed: 'gemini-prompt-flux-visual',
-        geminiNotice: geminiKey
-          ? 'Google Gemini Image Quota Notice: Free-tier limit for gemini-3.1-flash-image is currently 0 in Google AI Studio. Synthesized high-resolution photorealistic visual via server buffer using the exact Gemini Stage 1 prompt.'
-          : undefined,
-      };
-    } else {
-      console.warn(`[Thumbnail AI] Diffusion server fetch returned status: ${res.status}`);
+    console.log(`[Thumbnail AI] Successfully synthesized server-side Base64 image (${base64DataUrl.length} chars)`);
+    return {
+      imageUrl: base64DataUrl,
+      provider: 'ai_diffusion',
+      modelUsed: 'gemini-prompt-flux-visual',
+      geminiNotice: geminiKey
+        ? 'Google Gemini Image Quota Notice: Free-tier limit for gemini-3.1-flash-image is currently 0 in Google AI Studio. Synthesized high-resolution photorealistic visual via server buffer using the exact Gemini Stage 1 prompt.'
+        : undefined,
+    };
+  } catch (downloadErr) {
+    console.warn('[Thumbnail AI] downloadRemoteImageBuffer failed, attempting standard fetch:', downloadErr);
+    try {
+      const res = await fetch(diffusionUrl);
+      if (res.ok) {
+        const arrayBuffer = await res.arrayBuffer();
+        const base64 = Buffer.from(arrayBuffer).toString('base64');
+        const mimeType = res.headers.get('content-type') || 'image/jpeg';
+        const base64DataUrl = `data:${mimeType};base64,${base64}`;
+
+        return {
+          imageUrl: base64DataUrl,
+          provider: 'ai_diffusion',
+          modelUsed: 'gemini-prompt-flux-visual',
+        };
+      }
+    } catch (fetchErr) {
+      console.warn('[Thumbnail AI] Secondary fetch also failed:', fetchErr);
     }
-  } catch (fetchErr) {
-    console.warn('[Thumbnail AI] Diffusion server buffer fetch error:', fetchErr);
   }
 
   // If both direct Gemini and server buffer encounter issues, throw clean error
-  throw new Error('Image generation service was unable to render the visual buffer. Please try again in a moment.');
+  throw new Error('Image generation service was unable to render the visual buffer. Please check your network connection or try again in a moment.');
 }
 
 /**
