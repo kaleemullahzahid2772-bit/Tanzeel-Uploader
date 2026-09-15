@@ -5,6 +5,7 @@ import {
   uploadMediaToWordPress,
   findPostBySlug,
   setPostFeaturedImage,
+  sanitizeSlug,
 } from '@/lib/wordpress/client';
 
 export const dynamic = 'force-dynamic';
@@ -15,14 +16,20 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const {
-      slug,
-      imageBase64,
-      mimeType = 'image/png',
-      postTitle,
-      postId,
-      allowUploadWithoutPost = false,
-    } = body;
+    const imageBase64 = body.imageBase64 || body.image_base64 || body.image;
+    const rawSlug = body.slug || body.post_slug;
+    const postTitle = (body.postTitle || body.post_title || body.title || '').trim();
+    const rawPostId = body.postId ?? body.post_id;
+    const postId = rawPostId && !isNaN(Number(rawPostId)) ? Number(rawPostId) : undefined;
+    const rawFormat = (body.mimeType || body.image_format || body.format || 'image/png').toLowerCase();
+    const mimeType = rawFormat.includes('/')
+      ? rawFormat
+      : rawFormat === 'jpg' || rawFormat === 'jpeg'
+      ? 'image/jpeg'
+      : rawFormat === 'webp'
+      ? 'image/webp'
+      : 'image/png';
+    const allowUploadWithoutPost = Boolean(body.allowUploadWithoutPost || body.allow_upload_without_post);
 
     if (!imageBase64 || typeof imageBase64 !== 'string') {
       return NextResponse.json(
@@ -31,9 +38,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!slug || typeof slug !== 'string' || !slug.trim()) {
+    if (!rawSlug || typeof rawSlug !== 'string' || !rawSlug.trim()) {
       return NextResponse.json(
         { success: false, message: 'Blog slug is required for WordPress upload.' },
+        { status: 400 }
+      );
+    }
+
+    const cleanSlug = sanitizeSlug(rawSlug);
+    if (!cleanSlug) {
+      return NextResponse.json(
+        { success: false, message: 'A valid blog slug or URL is required.' },
         { status: 400 }
       );
     }
@@ -61,7 +76,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const cleanSlug = slug.trim().toLowerCase().replace(/[^\w-]/g, '-').replace(/-+/g, '-');
     const ext = mimeType === 'image/jpeg' ? 'jpg' : mimeType === 'image/webp' ? 'webp' : 'png';
     const filename = `${cleanSlug}.${ext}`;
 

@@ -893,10 +893,14 @@ export default function ThumbnailMakerPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          imageBase64: imageBase64,
           image_base64: imageBase64,
           slug: activeSlug,
+          postTitle: title.trim(),
           post_title: title.trim(),
+          postId: postId,
           post_id: postId,
+          mimeType: exportFormat === 'jpeg' ? 'image/jpeg' : 'image/png',
           image_format: exportFormat,
         }),
       });

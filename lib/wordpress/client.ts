@@ -41,6 +41,35 @@ export function getWordPressAuthHeader(username: string, applicationPassword: st
 }
 
 /**
+ * Cleans and standardizes a WordPress post slug or URL.
+ * Extracts the slug even if the user pasted a full URL or path with slashes.
+ */
+export function sanitizeSlug(slugOrUrl: string): string {
+  if (!slugOrUrl) return '';
+  let s = slugOrUrl.trim();
+  try {
+    if (s.startsWith('http://') || s.startsWith('https://')) {
+      const u = new URL(s);
+      s = u.pathname;
+    }
+  } catch {
+    s = s.replace(/^https?:\/\/[^\/]+/, '');
+  }
+  s = s.split('?')[0].split('#')[0];
+  s = s.replace(/^\/+|\/+$/g, '');
+  const parts = s.split('/').filter(Boolean);
+  if (parts.length > 0) {
+    s = parts[parts.length - 1];
+  }
+  try {
+    s = decodeURIComponent(s);
+  } catch {
+    // Keep as is
+  }
+  return s.toLowerCase().trim();
+}
+
+/**
  * Sends an HTTP/HTTPS request with certificate bypass and timeout safety.
  */
 async function wpRequest(
@@ -211,7 +240,7 @@ export async function findPostBySlug(settings: WordPressSettings, slug: string):
     return { found: false, message: 'WordPress credentials not configured.' };
   }
 
-  const cleanSlug = slug.trim().toLowerCase().replace(/[^\w-]/g, '-').replace(/-+/g, '-');
+  const cleanSlug = sanitizeSlug(slug);
   if (!cleanSlug) {
     return { found: false, message: 'Slug cannot be empty.' };
   }
