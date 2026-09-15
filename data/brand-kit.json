@@ -1,0 +1,19 @@
+{
+  "user_id": "00000000-0000-0000-0000-000000000001",
+  "brand_name": "Al Tanzeel Quran Academy",
+  "main_logo_url": "/uploads/brand-kit/main_logo.png",
+  "secondary_logo_url": null,
+  "icon_logo_url": "/uploads/brand-kit/icon_logo.png",
+  "primary_color": "#0F4C3A",
+  "secondary_color": "#083B2E",
+  "accent_color": "#C9A227",
+  "background_color": "#F8F4E8",
+  "text_color": "#FFFDF7",
+  "heading_font": "Playfair Display",
+  "body_font": "Inter",
+  "default_logo_position": "top-right",
+  "default_logo_size": "medium",
+  "default_template": "islamic_premium",
+  "watermark_enabled": false,
+  "watermark_url": null
+}

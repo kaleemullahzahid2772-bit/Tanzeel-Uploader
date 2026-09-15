@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/lib/context/AuthContext';
@@ -38,9 +38,9 @@ export default function BrandKitPage() {
 
   // Form State
   const [brandName, setBrandName] = useState('Al Tanzeel Quran Academy');
-  const [mainLogoUrl, setMainLogoUrl] = useState<string | null>(null);
+  const [mainLogoUrl, setMainLogoUrl] = useState<string | null>('/uploads/brand-kit/main_logo.png');
   const [secondaryLogoUrl, setSecondaryLogoUrl] = useState<string | null>(null);
-  const [iconLogoUrl, setIconLogoUrl] = useState<string | null>(null);
+  const [iconLogoUrl, setIconLogoUrl] = useState<string | null>('/uploads/brand-kit/icon_logo.png');
   const [primaryColor, setPrimaryColor] = useState('#0F4C3A');
   const [secondaryColor, setSecondaryColor] = useState('#083B2E');
   const [accentColor, setAccentColor] = useState('#C9A227');
@@ -48,7 +48,7 @@ export default function BrandKitPage() {
   const [textColor, setTextColor] = useState('#FFFDF7');
   const [headingFont, setHeadingFont] = useState('Playfair Display');
   const [bodyFont, setBodyFont] = useState('Inter');
-  const [defaultLogoPosition, setDefaultLogoPosition] = useState<LogoPosition>('bottom-right');
+  const [defaultLogoPosition, setDefaultLogoPosition] = useState<LogoPosition>('top-right');
   const [defaultLogoSize, setDefaultLogoSize] = useState<LogoSize>('medium');
   const [defaultTemplate, setDefaultTemplate] = useState<ThumbnailTemplate>('islamic_premium');
 
@@ -125,45 +125,83 @@ export default function BrandKitPage() {
     setErrorMessage(null);
 
     try {
-      const timestamp = Date.now();
-      const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const filePath = `${user?.id || 'demo_user'}/brand-kit/${timestamp}_${type}_${cleanName}`;
-
       let finalUrl = '';
 
-      if (!isConfigured || isDemoMode) {
-        // Read as base64 Data URL so it persists cleanly in browser session
-        const reader = new FileReader();
-        finalUrl = await new Promise<string>((resolve, reject) => {
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-      } else {
-        const { error: uploadError } = await supabase.storage
-          .from('media')
-          .upload(filePath, file, { cacheControl: '3600', upsert: true });
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', type);
 
-        if (uploadError) {
-          // Fallback to base64 data url if bucket policy is restricted
-          console.warn('Supabase storage upload error, using local data URL:', uploadError.message);
-          const reader = new FileReader();
-          finalUrl = await new Promise<string>((resolve) => {
-            reader.onload = () => resolve(reader.result as string);
-            reader.readAsDataURL(file);
-          });
-        } else {
-          const { data } = supabase.storage.from('media').getPublicUrl(filePath);
-          finalUrl = data.publicUrl;
+        const uploadRes = await fetch('/api/brand-kit/upload-logo', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (uploadRes.ok) {
+          const uploadJson = await uploadRes.json();
+          if (uploadJson.url) {
+            finalUrl = uploadJson.url;
+          }
         }
+      } catch (uploadErr) {
+        console.warn('API logo upload fallback:', uploadErr);
       }
 
-      if (type === 'main') setMainLogoUrl(finalUrl);
-      else if (type === 'secondary') setSecondaryLogoUrl(finalUrl);
-      else if (type === 'icon') setIconLogoUrl(finalUrl);
+      // If API upload failed for any reason, read as data URL fallback
+      if (!finalUrl) {
+        const reader = new FileReader();
+        finalUrl = await new Promise<string>((resolve) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+      }
 
-      setSaveSuccess(`Logo uploaded! Click "Save Brand Kit" to finalize.`);
-      setTimeout(() => setSaveSuccess(null), 4000);
+      let updatedMain = mainLogoUrl;
+      let updatedSec = secondaryLogoUrl;
+      let updatedIcon = iconLogoUrl;
+
+      if (type === 'main') {
+        setMainLogoUrl(finalUrl);
+        updatedMain = finalUrl;
+      } else if (type === 'secondary') {
+        setSecondaryLogoUrl(finalUrl);
+        updatedSec = finalUrl;
+      } else if (type === 'icon') {
+        setIconLogoUrl(finalUrl);
+        updatedIcon = finalUrl;
+      }
+
+      // Automatically persist to localStorage AND API immediately
+      const autoSavePayload: Partial<BrandKit> = {
+        brand_name: brandName.trim(),
+        main_logo_url: updatedMain,
+        secondary_logo_url: updatedSec,
+        icon_logo_url: updatedIcon,
+        primary_color: primaryColor,
+        secondary_color: secondaryColor,
+        accent_color: accentColor,
+        background_color: backgroundColor,
+        text_color: textColor,
+        heading_font: headingFont,
+        body_font: bodyFont,
+        default_logo_position: defaultLogoPosition || 'top-right',
+        default_logo_size: defaultLogoSize || 'medium',
+        default_template: defaultTemplate,
+      };
+
+      try {
+        localStorage.setItem('nur_brand_kit', JSON.stringify(autoSavePayload));
+        fetch('/api/brand-kit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(autoSavePayload),
+        }).catch((e) => console.warn('Auto-save brand-kit error:', e));
+      } catch (e) {
+        console.warn('Storage save notice:', e);
+      }
+
+      setSaveSuccess(`Logo uploaded & activated! Your logo is now active on all thumbnails.`);
+      setTimeout(() => setSaveSuccess(null), 5000);
     } catch (err: unknown) {
       console.error('Logo upload failed:', err);
       setErrorMessage(err instanceof Error ? err.message : 'Logo upload failed');
@@ -632,10 +670,11 @@ export default function BrandKitPage() {
                 onChange={(e) => setDefaultLogoPosition(e.target.value as LogoPosition)}
                 className="w-full text-xs rounded-xl border border-sand-border/80 bg-sand-ivory p-2.5 text-charcoal-dark focus:border-gold-primary focus:outline-none"
               >
-                <option value="bottom-right">Bottom Right (Standard)</option>
-                <option value="bottom-left">Bottom Left</option>
-                <option value="top-right">Top Right</option>
+                <option value="top-right">Top Right (Recommended for Urdu & Header)</option>
+                <option value="top-center">Top Center (Centered Emblem)</option>
                 <option value="top-left">Top Left</option>
+                <option value="bottom-right">Bottom Right</option>
+                <option value="bottom-left">Bottom Left</option>
                 <option value="none">No Logo</option>
               </select>
             </div>

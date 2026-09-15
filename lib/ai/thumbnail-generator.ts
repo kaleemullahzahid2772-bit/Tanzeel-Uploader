@@ -1,5 +1,6 @@
 import https from 'https';
 import http from 'http';
+import sharp from 'sharp';
 import {
   ThumbnailTemplate,
   OverlayLevel,
@@ -10,6 +11,11 @@ import {
   TypographyTreatment,
   DesignVariation,
   StructuredThumbnailPlan,
+  TextBackdropStyle,
+  GraphicBadgeStyle,
+  CornerRibbonStyle,
+  GraphicDecal,
+  LightFlareEffect,
 } from '@/lib/types/thumbnail';
 
 // Ensure system certificate resolution in local and serverless runtime environments
@@ -63,7 +69,7 @@ async function downloadRemoteImageBuffer(url: string): Promise<{ buffer: Buffer;
 /**
  * Sends an HTTPS POST JSON request with certificate bypass and returns status and parsed JSON/string.
  */
-async function httpsPostJson(url: string, payload: unknown): Promise<{ status: number; data: any; text: string }> {
+async function httpsPostJson(url: string, payload: unknown, timeoutMs: number = 15000): Promise<{ status: number; data: any; text: string }> {
   return new Promise((resolve, reject) => {
     const parsedUrl = new URL(url);
     const body = JSON.stringify(payload);
@@ -97,8 +103,8 @@ async function httpsPostJson(url: string, payload: unknown): Promise<{ status: n
     );
 
     req.on('error', reject);
-    req.setTimeout(25000, () => {
-      req.destroy(new Error('HTTPS POST timeout after 25 seconds'));
+    req.setTimeout(timeoutMs, () => {
+      req.destroy(new Error(`HTTPS POST timeout after ${timeoutMs / 1000} seconds`));
     });
     req.write(body);
     req.end();
@@ -122,6 +128,21 @@ export interface GeneratedBackgroundResult {
   recommendedTypography: TypographyTreatment;
   recommendedOverlay: OverlayLevel;
   variations: DesignVariation[];
+  // Automated Photoshop Compositing Layer Configuration
+  recommendedBackdropStyle?: TextBackdropStyle;
+  recommendedTextColor?: string;
+  recommendedTextOutlineEnabled?: boolean;
+  recommendedTextOutlineColor?: string;
+  recommendedTextOutlineWidth?: number;
+  recommendedBadgeText?: string;
+  recommendedBadgeStyle?: GraphicBadgeStyle;
+  recommendedCornerRibbonText?: string;
+  recommendedCornerRibbonStyle?: CornerRibbonStyle;
+  recommendedGraphicDecal?: GraphicDecal;
+  recommendedLightFlare?: LightFlareEffect;
+  recommendedBackgroundBlur?: boolean;
+  recommendedClarityFilter?: boolean;
+  recommendedShowSocialBar?: boolean;
 }
 
 /**
@@ -138,21 +159,84 @@ export function isUrduOrArabicScript(text: string): boolean {
  */
 export async function generateStructuredThumbnailPlan(
   title: string,
-  apiKey: string
+  apiKey: string,
+  creativeStyle?: string,
+  customPromptTuning?: string,
+  slug?: string
 ): Promise<StructuredThumbnailPlan> {
-  const { GoogleGenAI } = await import('@google/genai');
-  const ai = new GoogleGenAI({ apiKey });
   const isUrdu = isUrduOrArabicScript(title);
 
-  const systemInstruction = `You are a world-class YouTube Art Director, Visual Strategist, and Master Graphic Designer.
-Your task is to analyze the given video or blog post title and produce a structured, high-impact thumbnail design plan.
+  let styleGuidance = '';
+  if (creativeStyle === 'viral_youtube') {
+    styleGuidance = 'STYLE DIRECTION: High-CTR Editorial Thumbnail. Vivid controlled contrast, realistic rim lighting, photorealistic textures, dynamic visual depth, and click-worthy editorial composition.';
+  } else if (creativeStyle === 'islamic_luxury') {
+    styleGuidance = 'STYLE DIRECTION: Authentic Islamic Editorial Luxury. Majestic arabesque arches, warm golden volumetric sun rays, polished marble reflections, spiritual serenity, and classical Islamic architectural dignity.';
+  } else if (creativeStyle === 'tech_ai') {
+    styleGuidance = 'STYLE DIRECTION: Advanced Tech & AI Innovation. Sleek holographic data visualization, subtle ambient luminescence, futuristic workstation, professional high-tech editorial aesthetics.';
+  } else if (creativeStyle === 'business_wealth') {
+    styleGuidance = 'STYLE DIRECTION: Executive Business & Modern Economics. Sophisticated contemporary architecture, high-rise panoramic view, subtle analytical depth, golden hour prestige.';
+  } else if (creativeStyle === 'podcast_studio') {
+    styleGuidance = 'STYLE DIRECTION: High-End Documentary & Intellectual Studio. Moody low-key studio lighting, warm vintage spotlight, cinematic depth of field with broadcast studio bokeh, authoritative and captivating.';
+  } else if (creativeStyle === 'minimal_quran') {
+    styleGuidance = 'STYLE DIRECTION: Sacred Quranic Serenity. Classical open illuminated Holy Quran manuscript on an ornate carved wooden rehal, tranquil morning dawn light through mashrabiya lattice.';
+  }
 
-CRITICAL DESIGN PRINCIPLES:
-1. Every title is UNIQUE. Analyze its exact topic, domain (Islamic education, modern technology, YouTube growth, parenting, finance, etc.), and emotional hook.
-2. Formulate a vivid, specific visual concept with a strong focal point, dynamic foreground-background balance, and professional lighting.
-3. Strict composition: You MUST leave clean, uncluttered negative space on the ${isUrdu ? 'right' : 'left'} side specifically reserved for large readable headline text.
-4. In 'final_image_prompt', describe a photorealistic, 8k resolution, cinematic scene with camera angle, depth of field, volumetric lighting, subject, and background. Do NOT ask for text to be written inside the image.
-5. In 'negative_prompt', forbid: illegible text, low quality, deformed hands, distorted faces, blurry background artifacts, watermark, signature.
+  const userTuningPrompt = customPromptTuning?.trim()
+    ? `USER CREATIVE TUNING REQUEST: "${customPromptTuning.trim()}". Make sure to seamlessly incorporate this artistic direction.`
+    : '';
+
+  const systemInstruction = `You are a Professional Senior Graphic Designer, Photoshop Art Director, Photo Compositor, and Islamic Editorial Visual Designer.
+The final thumbnail MUST look like it was professionally designed by a human designer in Adobe Photoshop, NOT like a generic AI-generated image.
+The design must possess professional visual hierarchy, dramatic studio lighting, controlled contrast, cinematic composition, sharp details, and intentional graphic layering. Never produce a cheap, generic, blurry, or obviously AI-generated appearance.
+
+HIGH-CTR VISUAL HOOK & FOCAL POINT (MANDATORY):
+- DO NOT generate a generic, vague, or empty background.
+- The composition MUST feature ONE clear, dramatic focal point / visual hook relevant to the topic (e.g., an authentic carved marble ablution fountain with crystalline water, an ancient leather-bound illuminated manuscript resting on an ornate carved rehal, a dramatic glowing 3D symbolic element, or an authoritative symbolic object).
+- The focal subject must have sharp, tangible physical presence and 3D depth.
+
+DRAMATIC STUDIO LIGHTING & DEPTH OF FIELD:
+- Warm directional key light (golden hour sunbeam, warm spotlight, or soft lantern glow).
+- Sharp rim lighting / edge highlights separating the subject crisply from the background.
+- Glowing atmospheric accents (subtle dust motes, ethereal luminescence, radiant amber highlights).
+- Cinematic depth of field with creamy background blur (f/1.8 lens bokeh) to make the subject pop.
+
+INTENTIONAL NEGATIVE SPACE FOR TYPOGRAPHY:
+- Reserve 50% to 60% intentional clean, unobstructed negative space (${isUrdu ? 'on the right side or center' : 'on the left side or center'}) specifically allocated for bold typography compositing.
+- The negative space must have subtle atmospheric dark bokeh or soft studio gradient so bold white and gold headline text pops with high contrast without visual clash.
+
+STRICT 16:9 WIDESCREEN COMPOSITION:
+- Strict 16:9 widescreen format (1280x720 / 1920x1080).
+- Modern studio-grade YouTube thumbnail aesthetics.
+
+STRICT HALAL & CLEAN RULES:
+- Strictly NO text, words, letters, watermarks, signatures, or logos in the generated image.
+- Strictly respect Halal visual guidelines (no female imagery, no full facial human portraits).
+
+INPUT UNDERSTANDING:
+- Article Title (PRIMARY semantic source): Understand the core subject, emotional tone, and intellectual hook.
+${slug ? `- Article URL Slug (Supporting context only): "${slug}"` : ''}
+- Do NOT simply convert the title into a literal image. Think like a professional editorial thumbnail designer choosing an evocative visual metaphor.
+
+DOMAIN & ISLAMIC VISUAL STORYTELLING (ULTRA-LUXURY & CINEMATIC):
+- If the title discusses Prayer, Namaz, Worship, Sitting Prayer, or Islamic Rulings:
+  Compose a grand, breathtaking Ottoman or Andalusian mosque sanctuary with towering carved marble columns, arched vaulted ceilings, and glowing crystal chandeliers casting warm ambient light.
+  Include in the composition: an illuminated open Holy Quran resting on an intricately carved wooden Rehal (bookstand) with divine golden light rays radiating from its pages, and a reverent Muslim worshipper in traditional attire (kufi cap, sitting on a chair or in prayer) with cinematic golden rim lighting. The marble floor should feature soft reflections and volumetric golden dust motes.
+- If the title discusses Qur'an, Tajweed, Tilawat, or Hifz:
+  An exquisite illuminated gold-leaf Holy Quran manuscript on a majestic carved wooden Rehal, bathed in radiant divine golden rays, with warm dawn light filtering through intricate mashrabiya geometric lattices, in a tranquil grand mosque sanctuary.
+- If the title discusses Hadith, Sunnah, Islamic Scholar, or Deen:
+  A grand classical Islamic scholarly library or sanctuary, with leather-bound manuscripts with gold gilt, soaring architectural arches, warm lantern illumination, and profound intellectual dignity.
+- If the title discusses General Guidance, Life, or Wisdom:
+  Create an evocative, cinematic visual metaphor with deep emotional resonance, dramatic volumetric lighting, and serene spiritual grandeur.
+
+CRITICAL COMPOSITION & BACKGROUND-ONLY RULE:
+1. The image generation model must ONLY generate the PHOTOREALISTIC BACKGROUND SCENE.
+2. Strictly DO NOT ask for text, words, letters, or typography inside the generated image. The exact article title is added afterward as a real typography layer using an external graphics compositing system.
+3. Aspect Ratio: Strict 16:9 widescreen format (1280x720 / 1920x1080).
+4. Frame the composition so the main visual hooks (illuminated Quran on rehal, worshipper, grand arches) anchor the sides and bottom, leaving the upper-middle zone bathed in soft atmospheric depth for the bold 3D headline.
+5. In 'final_image_prompt': Describe an 8K photorealistic, cinematic scene with camera angle, depth of field, volumetric lighting, realistic materials, and atmospheric background.
+6. In 'negative_prompt': Forbid: text in image, words, letters, watermarks, signatures, logos, distorted hands, bad anatomy, low resolution, noise, cartoonish look, generic stock photo, female imagery.
+${styleGuidance ? `7. ${styleGuidance}` : ''}
+${userTuningPrompt ? `8. ${userTuningPrompt}` : ''}
 
 Return ONLY a valid JSON object matching this schema with no markdown ticks:
 {
@@ -173,9 +257,9 @@ Return ONLY a valid JSON object matching this schema with no markdown ticks:
 
   // Candidate models in order of capability & speed (Google Gemini Reasoning Models)
   const textModels = [
-    'gemini-3.6-flash',
-    'gemini-3.5-flash',
-    'gemini-3.7-flash',
+    'gemini-flash-latest',
+    'gemini-flash-lite-latest',
+    'gemini-2.5-flash',
     'gemini-3.8-flash',
   ];
 
@@ -190,7 +274,7 @@ Return ONLY a valid JSON object matching this schema with no markdown ticks:
           {
             parts: [
               {
-                text: `${systemInstruction}\n\nTitle to analyze: "${title}"`,
+                text: `${systemInstruction}\n\nTitle to analyze: "${title}"${slug ? `\nSlug context: "${slug}"` : ''}`,
               },
             ],
           },
@@ -200,7 +284,7 @@ Return ONLY a valid JSON object matching this schema with no markdown ticks:
         },
       };
 
-      const res = await httpsPostJson(url, payload);
+      const res = await httpsPostJson(url, payload, 6000);
 
       if (res.status === 200 && res.data) {
         const rawText = res.data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
@@ -223,7 +307,7 @@ Return ONLY a valid JSON object matching this schema with no markdown ticks:
               composition: parsed.composition || 'Rule of thirds with clean negative space',
               mood: parsed.mood || 'Inspiring, high-impact',
               typography_style: parsed.typography_style || 'Bold high-contrast headline',
-              text_placement: isUrdu ? 'right' : (parsed.text_placement || 'left'),
+              text_placement: isUrdu ? 'center' : (parsed.text_placement || 'center'),
               negative_prompt: parsed.negative_prompt || 'text, blurry, watermark, bad anatomy, deformed',
               final_image_prompt: parsed.final_image_prompt,
             };
@@ -252,7 +336,45 @@ function buildContextualBackupPlan(title: string, isUrdu: boolean): StructuredTh
   const isYoutubeTech = lower.includes('youtube') || lower.includes('grow') || lower.includes('views') || lower.includes('channel') || lower.includes('video') || lower.includes('subscriber');
   const isAiTools = lower.includes('ai') || lower.includes('tools') || lower.includes('artificial intelligence') || lower.includes('tech') || lower.includes('chatgpt');
   const isParenting = lower.includes('parent') || lower.includes('mistake') || lower.includes('child') || lower.includes('teach') || lower.includes('والدین') || lower.includes('بچے') || lower.includes('تربیت');
-  const isQuran = lower.includes('quran') || lower.includes('قرآن') || lower.includes('تلاوت') || lower.includes('تجوید') || lower.includes('حافظ') || lower.includes('islam') || lower.includes('tahajjud') || lower.includes('تهجد') || lower.includes('نماز');
+  const isQuran = lower.includes('quran') || lower.includes('قرآن') || lower.includes('تلاوت') || lower.includes('تجوید') || lower.includes('حافظ') || lower.includes('surah') || lower.includes('سورت');
+  const isFiqhOrWater = lower.includes('wudu') || lower.includes('وضو') || lower.includes('ghusl') || lower.includes('غسل') || lower.includes('water') || lower.includes('پانی') || lower.includes('taharah') || lower.includes('طہارت') || lower.includes('پاک') || lower.includes('حلال') || lower.includes('فتوی') || lower.includes('مسئلہ');
+  const isHadith = lower.includes('hadith') || lower.includes('حدیث') || lower.includes('sunnah') || lower.includes('سنت') || lower.includes('bukhari') || lower.includes('muslim');
+
+  if (isFiqhOrWater) {
+    return {
+      topic: 'Islamic Jurisprudence & Everyday Purity Rules',
+      category: 'Islamic Fiqh & Daily Life',
+      visual_concept: 'Serene Islamic ablution sanctuary with crystalline pure flowing water catching gentle morning rays',
+      main_subject: 'An authentic classical carved marble wudu fountain with crystal-clear water flowing smoothly into a pristine stone basin',
+      background_concept: 'Grand sunlit mosque courtyard with majestic marble archways and serene spiritual tranquility',
+      color_palette: ['#0B4F6C', '#D4AF37', '#1E293B'],
+      lighting: 'Ethereal natural daylight glistening on clear water ripples with warm golden volumetric sunlight through arches',
+      composition: isUrdu ? 'Fountain basin on the left, expansive clean dark negative space on the right for title' : 'Fountain on the right, clean negative space on the left',
+      mood: 'Pure, peaceful, authoritative, contemplative',
+      typography_style: 'Prestigious Nastaleeq or classical serif with crisp contrast and subtle ambient shadow',
+      text_placement: isUrdu ? 'right' : 'left',
+      negative_prompt: 'text, letters, words, watermark, logo, bad anatomy, female imagery, cartoon, blurry, noisy',
+      final_image_prompt: 'A breathtaking, ultra-detailed 8k photograph of a serene Islamic courtyard ablution fountain. Crystalline pure water flowing gently from an antique brass spout into a polished white marble basin, soft sunlight caressing clear water droplets, atmospheric grand arches in soft focus background, clear uncluttered negative space on the ' + (isUrdu ? 'right' : 'left') + ' side for typography, Hasselblad medium format photography, strictly no text.',
+    };
+  }
+
+  if (isHadith) {
+    return {
+      topic: 'Hadith & Classical Islamic Scholarship',
+      category: 'Hadith & Sunnah Studies',
+      visual_concept: 'Classical Islamic scholarly study with authentic historical manuscripts and warm atmospheric lamplight',
+      main_subject: 'Ancient leather-bound manuscript on an ornate carved wooden stand beside traditional calligraphy instruments',
+      background_concept: 'Grand classical Islamic library with towering arched wooden bookshelves and soft atmospheric dust motes',
+      color_palette: ['#8B4513', '#D4AF37', '#1A202C'],
+      lighting: 'Warm cinematic candlelight and soft amber directional spotlight illuminating parchment textures',
+      composition: isUrdu ? 'Scholarly desk on the left, clear calm negative space on the right' : 'Desk on the right, clear negative space on the left',
+      mood: 'Scholarly, profound, reverent, timeless',
+      typography_style: 'Dignified editorial typography with deep shadow and gold highlights',
+      text_placement: isUrdu ? 'right' : 'left',
+      negative_prompt: 'text, words, letters, watermark, low resolution, blurry, distorted, cartoon, female imagery',
+      final_image_prompt: 'Cinematic 8k photograph of an ancient Islamic scholar study. Antique leather-bound manuscripts resting on an authentic carved mahogany bookstand, soft warm amber glow from a brass lantern, atmospheric library background with subtle depth of field, clear dark negative space on the ' + (isUrdu ? 'right' : 'left') + ' side, Hasselblad medium format quality, strictly no text.',
+    };
+  }
 
   if (isBusiness) {
     return {
@@ -434,30 +556,70 @@ export async function generateRealAiImage(
     }
   }
 
-  // 2. High-Performance AI Diffusion using the EXACT Gemini Stage 1 prompt
-  console.log('[Thumbnail AI] Stage 2: Synthesizing high-resolution AI visual buffer on server...');
+  // 2. High-Performance Full HD / 4K Ultra-Sharp AI Diffusion using the Gemini Stage 1 prompt
+  console.log('[Thumbnail AI] Stage 2: Synthesizing Ultra-Sharp AI visual buffer on server...');
   const seed = Math.floor(Math.random() * 9999999);
-  const targetW = width >= 1400 ? 1280 : (width || 1280);
-  const targetH = Math.round((targetW * (height || 720)) / (width || 1280));
+  const targetW = Math.max(1280, Math.min(1920, width || 1920));
+  const targetH = Math.round((targetW * (height || 1080)) / (width || 1920));
 
+  const visualTokens = 'award-winning 8k commercial photograph, grand Ottoman mosque interior, glowing crystal chandeliers, illuminated open Holy Quran on ornate carved wooden rehal, dramatic volumetric god rays, floating golden dust motes, warm golden key light, sharp rim light separation, raytraced marble reflections, cinematic depth of field, f/1.8 lens bokeh, masterpiece, Hasselblad medium format, ultra-detailed 16:9 composition, vivid rich amber and deep teal colors, razor-sharp focus';
   const cleanPrompt = encodeURIComponent(
-    `${plan.final_image_prompt}, 16:9 YouTube thumbnail format, cinematic 8k wallpaper, clean negative space on ${plan.text_placement} for text overlay, strictly no text, no watermark`
+    `${plan.final_image_prompt}, ${visualTokens}, clean expansive space on ${plan.text_placement} for typography`
   );
-  const diffusionUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${targetW}&height=${targetH}&seed=${seed}&nologo=true&model=flux`;
+  const diffusionUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${targetW}&height=${targetH}&seed=${seed}&nologo=true&private=true&model=flux&enhance=true`;
+
+  // Server-side Lanczos3 High-Fidelity Upscaler & Watermark Stripper
+  async function enhanceRawBufferToHighRes(rawBuffer: Buffer, outW: number, outH: number): Promise<{ buffer: Buffer; mimeType: string }> {
+    try {
+      const meta = await sharp(rawBuffer).metadata();
+      const origW = meta.width || outW;
+      const origH = meta.height || outH;
+
+      // Cleanly crop off the bottom 3.8% where remote watermarks/logos reside
+      const cleanHeight = Math.max(100, origH - Math.round(origH * 0.038));
+
+      const enhanced = await sharp(rawBuffer)
+        .extract({ left: 0, top: 0, width: origW, height: cleanHeight })
+        .resize(outW, outH, {
+          kernel: sharp.kernel.lanczos3,
+          fit: 'fill',
+        })
+        .sharpen({
+          sigma: 1.3,
+          m1: 1.5,
+          m2: 0.6,
+        })
+        .modulate({
+          saturation: 1.12,
+          brightness: 1.02,
+        })
+        .jpeg({
+          quality: 98,
+          chromaSubsampling: '4:4:4',
+          mozjpeg: true,
+        })
+        .toBuffer();
+
+      return { buffer: enhanced, mimeType: 'image/jpeg' };
+    } catch (sharpErr) {
+      console.warn('[Thumbnail AI] Sharp enhancement fallback to raw buffer:', sharpErr);
+      return { buffer: rawBuffer, mimeType: 'image/jpeg' };
+    }
+  }
 
   try {
-    const { buffer, contentType } = await downloadRemoteImageBuffer(diffusionUrl);
-    const base64 = buffer.toString('base64');
-    const mimeType = contentType || 'image/jpeg';
+    const { buffer: rawBuffer } = await downloadRemoteImageBuffer(diffusionUrl);
+    const { buffer: enhancedBuffer, mimeType } = await enhanceRawBufferToHighRes(rawBuffer, targetW, targetH);
+    const base64 = enhancedBuffer.toString('base64');
     const base64DataUrl = `data:${mimeType};base64,${base64}`;
 
-    console.log(`[Thumbnail AI] Successfully synthesized server-side Base64 image (${base64DataUrl.length} chars)`);
+    console.log(`[Thumbnail AI] Successfully synthesized server-side Base64 image (${base64DataUrl.length} chars, ${targetW}x${targetH})`);
     return {
       imageUrl: base64DataUrl,
       provider: 'ai_diffusion',
-      modelUsed: 'gemini-prompt-flux-visual',
+      modelUsed: 'gemini-prompt-flux-lanczos3-enhanced',
       geminiNotice: geminiKey
-        ? 'Google Gemini Image Quota Notice: Free-tier limit for gemini-3.1-flash-image is currently 0 in Google AI Studio. Synthesized high-resolution photorealistic visual via server buffer using the exact Gemini Stage 1 prompt.'
+        ? 'Google Gemini Image Quota Notice: Free-tier limit for gemini-3.1-flash-image is currently 0 in Google AI Studio. Synthesized high-resolution photorealistic visual via server buffer using the exact Gemini Stage 1 prompt and Lanczos3 4:4:4 upscaler.'
         : undefined,
     };
   } catch (downloadErr) {
@@ -466,14 +628,15 @@ export async function generateRealAiImage(
       const res = await fetch(diffusionUrl);
       if (res.ok) {
         const arrayBuffer = await res.arrayBuffer();
-        const base64 = Buffer.from(arrayBuffer).toString('base64');
-        const mimeType = res.headers.get('content-type') || 'image/jpeg';
+        const rawBuffer = Buffer.from(arrayBuffer);
+        const { buffer: enhancedBuffer, mimeType } = await enhanceRawBufferToHighRes(rawBuffer, targetW, targetH);
+        const base64 = enhancedBuffer.toString('base64');
         const base64DataUrl = `data:${mimeType};base64,${base64}`;
 
         return {
           imageUrl: base64DataUrl,
           provider: 'ai_diffusion',
-          modelUsed: 'gemini-prompt-flux-visual',
+          modelUsed: 'gemini-prompt-flux-lanczos3-enhanced',
         };
       }
     } catch (fetchErr) {
@@ -487,47 +650,66 @@ export async function generateRealAiImage(
 
 /**
  * Maps the structured AI plan into UI design styling and Photoshop-style layout.
+ * Intelligently classifies topic and configures multi-layered graphics, decals, badges, and card plates.
  */
 export function deriveDesignStyling(plan: StructuredThumbnailPlan, isUrdu: boolean) {
-  let recommendedLayout: CompositionLayout = 'subject_right_text_left';
-  if (plan.text_placement === 'right') {
-    recommendedLayout = 'subject_left_text_right';
-  } else if (plan.text_placement === 'left') {
-    recommendedLayout = 'subject_right_text_left';
-  } else if (plan.text_placement === 'bottom') {
-    recommendedLayout = 'subject_bottom_text_top';
+  const combinedText = (plan.topic + ' ' + (plan.visual_concept || '') + ' ' + (plan.category || '')).toLowerCase();
+
+  const isMistakeOrWarning = /mistake|mistakes|error|avoid|wrong|problem|warning|alert|غلطی|غلطیاں|نقصان|احتیاط|خبردار/.test(combinedText);
+  const isTeacherOrKids = /teacher|teaching|kids|children|parents|parenting|academy|school|ustad|استاد|بچے|والدین|تربیت/.test(combinedText);
+  const isQuranOrIslamic = isUrdu || /quran|quraan|quranic|tajweed|hifz|surah|ayah|namaz|salah|prayer|hadith|islamic|islam|deen|dua|allah|prophet|sunnah|madrasah|hafiz|bismillah|روزہ|نماز|قرآن|حدیث|دعا|اسلام|دین|مسجد|تلاوت|تجوید/.test(combinedText);
+  const isYouTubeOrGrowth = /youtube|subscribers|algorithm|views|یوٹیوب|ویوز/.test(combinedText) || (/\b(grow|growth|viral|monetiz)\b/.test(combinedText) && !isQuranOrIslamic);
+
+  // Clean, High-Impact YouTube Educational Defaults (No unwanted badges, no corner ribbons):
+  const recommendedBackdropStyle: TextBackdropStyle = 'none';
+  let recommendedTextColor = isUrdu ? '#FFFDF7' : '#FFFFFF';
+  const recommendedTextOutlineEnabled = true;
+  const recommendedTextOutlineColor = '#000000';
+  const recommendedTextOutlineWidth = 10;
+  const recommendedBadgeText = '';
+  const recommendedBadgeStyle: GraphicBadgeStyle = 'none';
+  const recommendedCornerRibbonText = '';
+  const recommendedCornerRibbonStyle: CornerRibbonStyle = 'none';
+  const recommendedGraphicDecal: GraphicDecal = 'none';
+  const recommendedLightFlare: LightFlareEffect = 'none';
+  let recommendedColorGrading: ColorGradingPreset = 'royal_gold';
+
+  if (isMistakeOrWarning) {
+    recommendedTextColor = '#FFDF00';
+    recommendedColorGrading = 'warm_cinematic';
+  } else if (isTeacherOrKids) {
+    recommendedTextColor = '#FFFDF7';
+    recommendedColorGrading = 'deep_emerald';
+  } else if (isQuranOrIslamic) {
+    recommendedTextColor = '#FFFDF7';
+    recommendedColorGrading = 'royal_gold';
+  } else if (isYouTubeOrGrowth) {
+    recommendedTextColor = '#FFDF00';
+    recommendedColorGrading = 'clean_editorial';
   } else {
-    recommendedLayout = 'center_focus';
+    recommendedTextColor = '#FFFFFF';
+    recommendedColorGrading = 'clean_editorial';
   }
 
-  let recommendedColorGrading: ColorGradingPreset = 'deep_emerald';
-  const paletteStr = plan.color_palette.join(' ').toLowerCase();
-  if (paletteStr.includes('ff00') || paletteStr.includes('00f0') || paletteStr.includes('cyan') || paletteStr.includes('magenta')) {
-    recommendedColorGrading = 'clean_editorial';
-  } else if (paletteStr.includes('ffd') || paletteStr.includes('d4af') || paletteStr.includes('c9a2')) {
-    recommendedColorGrading = 'royal_gold';
-  } else if (paletteStr.includes('amber') || paletteStr.includes('warm') || paletteStr.includes('8b45')) {
-    recommendedColorGrading = 'warm_cinematic';
-  } else if (paletteStr.includes('blue') || paletteStr.includes('indigo') || paletteStr.includes('1e29')) {
-    recommendedColorGrading = 'moody_dusk';
-  }
+  // Consistent Center Focus for perfect title framing
+  const recommendedLayout: CompositionLayout = 'center_focus';
 
   const variations: DesignVariation[] = [
     {
-      id: 'var_cinematic',
-      name: 'Cinematic Asymmetric',
-      description: 'Dynamic subject separation with dramatic directional rim light and dedicated negative space',
+      id: 'var_ctr_card',
+      name: 'High-CTR Question Card',
+      description: 'Defined high-contrast plate with gold/emerald typography, badges, and decals for maximum clicks',
       style: 'cinematic_islamic',
-      layout: recommendedLayout,
+      layout: 'center_focus',
       colorGrading: recommendedColorGrading,
-      borderTreatment: 'corner_accents',
+      borderTreatment: 'none',
       typographyTreatment: isUrdu ? 'white_nastaleeq_shadow' : 'gold_highlighted_keyword',
       overlayOpacity: 'medium',
     },
     {
       id: 'var_luxury',
-      name: 'Minimal Luxury',
-      description: 'Clean borderless layout with subtle gold filigree and elegant title contrast',
+      name: 'Sacred Gold Luxury',
+      description: 'Royal gold banner accent with ethereal sunbeams and deep drop shadows',
       style: 'minimal_luxury',
       layout: 'center_focus',
       colorGrading: 'royal_gold',
@@ -538,11 +720,11 @@ export function deriveDesignStyling(plan: StructuredThumbnailPlan, isUrdu: boole
     {
       id: 'var_editorial',
       name: 'High-Impact Editorial',
-      description: 'Glassmorphism dark card with left pillar accent for maximum readability',
+      description: 'Crisp white card with left pillar accent and high micro-contrast',
       style: 'islamic_editorial',
-      layout: recommendedLayout,
+      layout: 'center_focus',
       colorGrading: 'clean_editorial',
-      borderTreatment: 'left_gold_bar',
+      borderTreatment: 'none',
       typographyTreatment: 'glassmorphism_card',
       overlayOpacity: 'dark',
     },
@@ -552,10 +734,24 @@ export function deriveDesignStyling(plan: StructuredThumbnailPlan, isUrdu: boole
     recommendedLayout,
     recommendedColorGrading,
     recommendedStyle: 'cinematic_islamic' as DesignStyle,
-    recommendedBorder: 'corner_accents' as BorderTreatment,
+    recommendedBorder: 'none' as BorderTreatment,
     recommendedTypography: (isUrdu ? 'white_nastaleeq_shadow' : 'gold_highlighted_keyword') as TypographyTreatment,
     recommendedOverlay: 'medium' as OverlayLevel,
     variations,
+    recommendedBackdropStyle,
+    recommendedTextColor,
+    recommendedTextOutlineEnabled,
+    recommendedTextOutlineColor,
+    recommendedTextOutlineWidth,
+    recommendedBadgeText,
+    recommendedBadgeStyle,
+    recommendedCornerRibbonText,
+    recommendedCornerRibbonStyle,
+    recommendedGraphicDecal,
+    recommendedLightFlare,
+    recommendedBackgroundBlur: false,
+    recommendedClarityFilter: true,
+    recommendedShowSocialBar: true,
   };
 }
 
@@ -566,17 +762,29 @@ export async function generateThumbnailBackground(
   title: string,
   width: number = 1599,
   height: number = 892,
-  options?: { customPrompt?: string; apiKey?: string }
+  options?: {
+    customPrompt?: string;
+    apiKey?: string;
+    creativeStyle?: string;
+    customPromptTuning?: string;
+    slug?: string;
+  }
 ): Promise<GeneratedBackgroundResult> {
   const geminiKey = options?.apiKey || process.env.GEMINI_API_KEY;
   const isUrdu = isUrduOrArabicScript(title);
 
-  console.log(`[Thumbnail AI] Initiating 2-Stage Generation for: "${title}"`);
+  console.log(`[Thumbnail AI] Initiating 2-Stage Generation for: "${title}" (Style: ${options?.creativeStyle || 'Default'}${options?.slug ? `, Slug: "${options.slug}"` : ''})`);
 
   // STAGE 1: Reasoning and Structured Art Direction Plan
   let plan: StructuredThumbnailPlan;
   if (geminiKey) {
-    plan = await generateStructuredThumbnailPlan(title, geminiKey);
+    plan = await generateStructuredThumbnailPlan(
+      title,
+      geminiKey,
+      options?.creativeStyle,
+      options?.customPromptTuning,
+      options?.slug
+    );
   } else {
     plan = buildContextualBackupPlan(title, isUrdu);
   }
@@ -609,5 +817,19 @@ export async function generateThumbnailBackground(
     recommendedTypography: styling.recommendedTypography,
     recommendedOverlay: styling.recommendedOverlay,
     variations: styling.variations,
+    recommendedBackdropStyle: styling.recommendedBackdropStyle,
+    recommendedTextColor: styling.recommendedTextColor,
+    recommendedTextOutlineEnabled: styling.recommendedTextOutlineEnabled,
+    recommendedTextOutlineColor: styling.recommendedTextOutlineColor,
+    recommendedTextOutlineWidth: styling.recommendedTextOutlineWidth,
+    recommendedBadgeText: styling.recommendedBadgeText,
+    recommendedBadgeStyle: styling.recommendedBadgeStyle,
+    recommendedCornerRibbonText: styling.recommendedCornerRibbonText,
+    recommendedCornerRibbonStyle: styling.recommendedCornerRibbonStyle,
+    recommendedGraphicDecal: styling.recommendedGraphicDecal,
+    recommendedLightFlare: styling.recommendedLightFlare,
+    recommendedBackgroundBlur: styling.recommendedBackgroundBlur,
+    recommendedClarityFilter: styling.recommendedClarityFilter,
+    recommendedShowSocialBar: styling.recommendedShowSocialBar,
   };
 }

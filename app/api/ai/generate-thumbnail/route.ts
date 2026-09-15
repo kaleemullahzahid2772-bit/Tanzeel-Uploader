@@ -4,7 +4,15 @@ import { generateThumbnailBackground } from '@/lib/ai/thumbnail-generator';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { title, width = 1599, height = 892, customPrompt } = body;
+    const {
+      title,
+      width = 1599,
+      height = 892,
+      customPrompt,
+      creativeStyle,
+      customPromptTuning,
+      slug,
+    } = body;
 
     if (!title || typeof title !== 'string' || title.trim().length === 0) {
       return NextResponse.json(
@@ -20,7 +28,12 @@ export async function POST(req: NextRequest) {
       title.trim(),
       parsedWidth,
       parsedHeight,
-      { customPrompt }
+      {
+        customPrompt,
+        creativeStyle,
+        customPromptTuning,
+        slug: typeof slug === 'string' && slug.trim().length > 0 ? slug.trim() : undefined,
+      }
     );
 
     return NextResponse.json({
