@@ -539,41 +539,70 @@ export async function generateRealAiImage(
   height: number,
   geminiKey?: string
 ): Promise<{ imageUrl: string; provider: 'gemini' | 'openai' | 'ai_diffusion'; modelUsed: string; geminiNotice?: string }> {
-  // 1. Attempt OpenAI DALL-E 3 if OPENAI_API_KEY is configured
+  // 1. Attempt OpenAI Image Models if OPENAI_API_KEY is configured
   const openaiKey = process.env.OPENAI_API_KEY;
-  if (openaiKey && openaiKey.trim().length > 10) {
-    try {
-      console.log('[Thumbnail AI] Stage 2: Attempting OpenAI DALL-E 3 HD Generator...');
-      const dallERes = await httpsPostJson(
-        'https://api.openai.com/v1/images/generations',
-        {
-          model: 'dall-e-3',
-          prompt: `${plan.final_image_prompt}. Negative constraint: ${plan.negative_prompt}. High-CTR YouTube editorial thumbnail composition, strict 16:9 widescreen, clean expansive space on the ${plan.text_side || 'left'} side for typography. Strictly NO text, NO words, NO letters, NO watermarks.`,
-          size: '1792x1024',
-          quality: 'hd',
-          n: 1,
-        },
-        35000,
-        {
-          Authorization: `Bearer ${openaiKey.trim()}`,
-        }
-      );
+  let openAiQuotaNotice: string | undefined = undefined;
 
-      if (dallERes.status === 200 && dallERes.data?.data?.[0]?.url) {
-        const remoteUrl = dallERes.data.data[0].url;
-        const { buffer: rawBuf } = await downloadRemoteImageBuffer(remoteUrl);
-        const base64DataUrl = `data:image/jpeg;base64,${rawBuf.toString('base64')}`;
-        console.log('[Thumbnail AI] Success: Masterpiece synthesized via OpenAI DALL-E 3 HD!');
-        return {
-          imageUrl: base64DataUrl,
-          provider: 'openai',
-          modelUsed: 'dall-e-3-hd',
+  if (openaiKey && openaiKey.trim().length > 10) {
+    const candidateOpenAiModels = [
+      'gpt-image-1',
+      'chatgpt-image-latest',
+      'gpt-image-1.5',
+      'dall-e-3',
+    ];
+
+    for (const model of candidateOpenAiModels) {
+      try {
+        console.log(`[Thumbnail AI] Stage 2: Attempting OpenAI image model (${model})...`);
+        const isDallE3 = model === 'dall-e-3';
+        const imagePayload: any = {
+          model: model,
+          prompt: `${plan.final_image_prompt}. Negative constraint: ${plan.negative_prompt}. High-CTR editorial commercial photograph, strict 16:9 widescreen, clean expansive dark negative space on the ${plan.text_side || 'left'} side for typography. Strictly NO text, NO words, NO letters, NO watermarks.`,
+          size: isDallE3 ? '1792x1024' : '1024x1024',
+          n: 1,
         };
-      } else {
-        console.warn('[Thumbnail AI] OpenAI DALL-E 3 returned status:', dallERes.status, dallERes.text?.slice(0, 160));
+        if (isDallE3) {
+          imagePayload.quality = 'hd';
+        }
+
+        const dallERes = await httpsPostJson(
+          'https://api.openai.com/v1/images/generations',
+          imagePayload,
+          35000,
+          {
+            Authorization: `Bearer ${openaiKey.trim()}`,
+          }
+        );
+
+        if (dallERes.status === 200 && dallERes.data?.data?.[0]) {
+          const item = dallERes.data.data[0];
+          let base64DataUrl = '';
+
+          if (item.b64_json) {
+            base64DataUrl = `data:image/png;base64,${item.b64_json}`;
+          } else if (item.url) {
+            const { buffer: rawBuf } = await downloadRemoteImageBuffer(item.url);
+            base64DataUrl = `data:image/jpeg;base64,${rawBuf.toString('base64')}`;
+          }
+
+          if (base64DataUrl) {
+            console.log(`[Thumbnail AI] Success: Masterpiece synthesized via OpenAI (${model})!`);
+            return {
+              imageUrl: base64DataUrl,
+              provider: 'openai',
+              modelUsed: `openai-${model}`,
+            };
+          }
+        } else if (dallERes.status === 429) {
+          console.warn(`[Thumbnail AI] OpenAI quota / credit balance exhausted:`, dallERes.text?.slice(0, 180));
+          openAiQuotaNotice = 'OpenAI API Key is connected, but the account has 0 remaining credits. Please add credits at https://platform.openai.com/settings/organization/billing/ for studio-grade DALL-E/GPT images.';
+          break; // Don't loop through all models if credit balance is 0
+        } else {
+          console.warn(`[Thumbnail AI] OpenAI model ${model} returned status:`, dallERes.status, dallERes.text?.slice(0, 160));
+        }
+      } catch (dallErr) {
+        console.warn(`[Thumbnail AI] OpenAI ${model} generation attempt failed:`, dallErr instanceof Error ? dallErr.message : String(dallErr));
       }
-    } catch (dallErr) {
-      console.warn('[Thumbnail AI] OpenAI DALL-E 3 generation failed:', dallErr instanceof Error ? dallErr.message : String(dallErr));
     }
   }
 
@@ -674,6 +703,8 @@ export async function generateRealAiImage(
   const seed = Math.floor(Math.random() * 9999999);
   const targetW = Math.max(1280, Math.min(1920, width || 1920));
   const targetH = Math.round((targetW * (height || 1080)) / (width || 1920));
+  // Request height slightly larger so cropping bottom watermark leaves EXACT 16:9 targetH with zero stretching
+  const requestedH = Math.round(targetH / 0.92);
 
   const visualTokens = 'award-winning 8k editorial commercial photograph, dramatic volumetric atmospheric lighting, warm cinematic key light, sharp rim light edge separation, raytraced specular highlights, cinematic depth of field, f/1.8 lens bokeh, masterpiece, Hasselblad medium format, ultra-detailed 16:9 widescreen composition, rich colors, razor-sharp focus';
   const subjectPlacement = plan.subject_side === 'left'
@@ -682,7 +713,8 @@ export async function generateRealAiImage(
   const cleanPrompt = encodeURIComponent(
     `${plan.final_image_prompt}, ${visualTokens}, ${subjectPlacement}`
   );
-  const diffusionUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${targetW}&height=${targetH}&seed=${seed}&nologo=true&private=true&model=flux&enhance=true`;
+  // Do NOT pass enhance=true (which uses an LLM to corrupt our carefully constructed prompt)
+  const diffusionUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${targetW}&height=${requestedH}&seed=${seed}&nologo=true&private=true&model=flux`;
 
   // Server-side Lanczos3 High-Fidelity Upscaler & Watermark Stripper
   async function enhanceRawBufferToHighRes(rawBuffer: Buffer, outW: number, outH: number): Promise<{ buffer: Buffer; mimeType: string }> {
@@ -698,7 +730,8 @@ export async function generateRealAiImage(
         .extract({ left: 0, top: 0, width: origW, height: cleanHeight })
         .resize(outW, outH, {
           kernel: sharp.kernel.lanczos3,
-          fit: 'fill',
+          fit: 'cover',
+          position: 'top',
         })
         .sharpen({
           sigma: 1.3,
@@ -706,7 +739,7 @@ export async function generateRealAiImage(
           m2: 0.6,
         })
         .modulate({
-          saturation: 1.12,
+          saturation: 1.10,
           brightness: 1.02,
         })
         .jpeg({
@@ -723,6 +756,12 @@ export async function generateRealAiImage(
     }
   }
 
+  const combinedNotice = openAiQuotaNotice
+    ? openAiQuotaNotice
+    : geminiKey
+    ? 'Google Gemini Image Quota Notice: Free-tier limit for gemini-3.1-flash-image is currently 0 in Google AI Studio. Synthesized high-resolution photorealistic visual via server buffer using the exact Gemini Stage 1 prompt and Lanczos3 4:4:4 upscaler.'
+    : undefined;
+
   try {
     const { buffer: rawBuffer } = await downloadRemoteImageBuffer(diffusionUrl);
     const { buffer: enhancedBuffer, mimeType } = await enhanceRawBufferToHighRes(rawBuffer, targetW, targetH);
@@ -734,9 +773,7 @@ export async function generateRealAiImage(
       imageUrl: base64DataUrl,
       provider: 'ai_diffusion',
       modelUsed: 'gemini-prompt-flux-lanczos3-enhanced',
-      geminiNotice: geminiKey
-        ? 'Google Gemini Image Quota Notice: Free-tier limit for gemini-3.1-flash-image is currently 0 in Google AI Studio. Synthesized high-resolution photorealistic visual via server buffer using the exact Gemini Stage 1 prompt and Lanczos3 4:4:4 upscaler.'
-        : undefined,
+      geminiNotice: combinedNotice,
     };
   } catch (downloadErr) {
     console.warn('[Thumbnail AI] downloadRemoteImageBuffer failed, attempting standard fetch:', downloadErr);

@@ -875,6 +875,16 @@ export default function ThumbnailMakerPage() {
         hookColor: currentHookColor,
         subjectSide: currentSubjectSide,
         textSide: currentTextSide,
+        compositionLayout: currentSubjectSide === 'left' ? 'subject_left_text_right' : 'subject_right_text_left',
+        borderTreatment: 'none',
+        textBackdropStyle: 'none',
+        badgeText: undefined,
+        badgeStyle: 'none',
+        cornerRibbonText: undefined,
+        cornerRibbonStyle: 'none',
+        graphicDecal: 'none',
+        lightFlare: 'none',
+        showSocialBar: true,
         socialHandle: 'alulama.org',
       };
       const imageBase64 = await exportThumbnailDataUrl(currentConfig, exportFormat, exportResolution);
