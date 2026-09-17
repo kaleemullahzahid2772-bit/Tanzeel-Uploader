@@ -69,7 +69,12 @@ async function downloadRemoteImageBuffer(url: string): Promise<{ buffer: Buffer;
 /**
  * Sends an HTTPS POST JSON request with certificate bypass and returns status and parsed JSON/string.
  */
-async function httpsPostJson(url: string, payload: unknown, timeoutMs: number = 15000): Promise<{ status: number; data: any; text: string }> {
+async function httpsPostJson(
+  url: string,
+  payload: unknown,
+  timeoutMs: number = 15000,
+  extraHeaders?: Record<string, string>
+): Promise<{ status: number; data: any; text: string }> {
   return new Promise((resolve, reject) => {
     const parsedUrl = new URL(url);
     const body = JSON.stringify(payload);
@@ -85,6 +90,7 @@ async function httpsPostJson(url: string, payload: unknown, timeoutMs: number = 
           'Content-Type': 'application/json',
           'Content-Length': Buffer.byteLength(body),
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          ...(extraHeaders || {}),
         },
       },
       (res) => {
@@ -198,7 +204,11 @@ The design must possess professional visual hierarchy, dramatic studio lighting,
     HIGH-CTR VISUAL HOOK & FOCAL POINT (MANDATORY):
 - DO NOT generate a generic, vague, or empty background.
 - NEVER default to an Ottoman mosque or Quran rehal unless the title is SPECIFICALLY about Quran recitation or prayer in a mosque.
-- The composition MUST feature ONE clear, dramatic focal subject relevant to the EXACT TOPIC:
+  * For Family Relations, Mahram, Na-Mahram, Relatives, Marriage, Nikah, Grandparents, Social Rulings (محرم, نامحرم, پردہ, رشتہ داری, نانی, دادی, دادا, نانا, چچا, ماموں, خالہ, پھوپھی, نکاح, شادی, رشتہ):
+    Feature a distinguished, wise, elderly Muslim patriarch/grandfather with a dignified white beard, wearing a clean traditional cream thobe and kufi cap, or an authoritative Islamic Mufti/Scholar in a modern broadcast studio with warm lighting and Andalusian arches. Compose on the RIGHT side, leaving 55% clean, dark atmospheric negative space on the LEFT side for typography.
+    STRICTLY NEVER generate a closed book, a generic desk, or an empty room for family topics!
+  * For General Fatwa, Islamic Rulings, Masail, Halal & Haram (مسئلہ, فتوی, حکم, شرعی طریقہ, جائز, ناجائز):
+    Show an authoritative, scholarly Islamic Mufti sitting in a dignified modern broadcast studio with warm lighting, golden rim light, and soaring arches in background bokeh.
   * For Umrah, Hajj, or Hair Trimming / Halq / Qasr (احرام, حلق, قصر, عمرہ, حج):
     Show a Muslim male pilgrim dressed in clean white unstitched cotton ihram garments seen from behind or over-the-shoulder, in crisp focus with professional steel barber scissors or razor, with the breathtaking glowing minarets of Masjid al-Haram / Makkah clock tower illuminated in the warm atmospheric night sky.
   * For Wudu, Ghusl, Water, or Ritual Purity (وضو, غسل, طہارت, پاکی):
@@ -528,9 +538,79 @@ export async function generateRealAiImage(
   width: number,
   height: number,
   geminiKey?: string
-): Promise<{ imageUrl: string; provider: 'gemini' | 'ai_diffusion'; modelUsed: string; geminiNotice?: string }> {
-  // 1. Attempt Google Gemini Direct Image Generation if key is provided
+): Promise<{ imageUrl: string; provider: 'gemini' | 'openai' | 'ai_diffusion'; modelUsed: string; geminiNotice?: string }> {
+  // 1. Attempt OpenAI DALL-E 3 if OPENAI_API_KEY is configured
+  const openaiKey = process.env.OPENAI_API_KEY;
+  if (openaiKey && openaiKey.trim().length > 10) {
+    try {
+      console.log('[Thumbnail AI] Stage 2: Attempting OpenAI DALL-E 3 HD Generator...');
+      const dallERes = await httpsPostJson(
+        'https://api.openai.com/v1/images/generations',
+        {
+          model: 'dall-e-3',
+          prompt: `${plan.final_image_prompt}. Negative constraint: ${plan.negative_prompt}. High-CTR YouTube editorial thumbnail composition, strict 16:9 widescreen, clean expansive space on the ${plan.text_side || 'left'} side for typography. Strictly NO text, NO words, NO letters, NO watermarks.`,
+          size: '1792x1024',
+          quality: 'hd',
+          n: 1,
+        },
+        35000,
+        {
+          Authorization: `Bearer ${openaiKey.trim()}`,
+        }
+      );
+
+      if (dallERes.status === 200 && dallERes.data?.data?.[0]?.url) {
+        const remoteUrl = dallERes.data.data[0].url;
+        const { buffer: rawBuf } = await downloadRemoteImageBuffer(remoteUrl);
+        const base64DataUrl = `data:image/jpeg;base64,${rawBuf.toString('base64')}`;
+        console.log('[Thumbnail AI] Success: Masterpiece synthesized via OpenAI DALL-E 3 HD!');
+        return {
+          imageUrl: base64DataUrl,
+          provider: 'openai',
+          modelUsed: 'dall-e-3-hd',
+        };
+      } else {
+        console.warn('[Thumbnail AI] OpenAI DALL-E 3 returned status:', dallERes.status, dallERes.text?.slice(0, 160));
+      }
+    } catch (dallErr) {
+      console.warn('[Thumbnail AI] OpenAI DALL-E 3 generation failed:', dallErr instanceof Error ? dallErr.message : String(dallErr));
+    }
+  }
+
+  // 2. Attempt Google Imagen 3 (:predict) and Gemini Direct Image Generation
   if (geminiKey) {
+    // Attempt Google Imagen 3 official predict endpoint
+    try {
+      console.log('[Thumbnail AI] Stage 2: Attempting Google Imagen 3 (imagen-3.0-generate-002)...');
+      const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${geminiKey}`;
+      const imagenPayload = {
+        instances: [
+          {
+            prompt: `${plan.final_image_prompt}. Negative constraint: ${plan.negative_prompt}. High-contrast YouTube editorial commercial photograph, strict 16:9 widescreen, clean expansive space on the ${plan.text_side || 'left'} side for typography. Strictly NO text, NO words, NO letters, NO watermarks.`,
+          },
+        ],
+        parameters: {
+          sampleCount: 1,
+          aspectRatio: '16:9',
+          outputOptions: { mimeType: 'image/jpeg' },
+          personGeneration: 'ALLOW_ADULT',
+        },
+      };
+
+      const imagenRes = await httpsPostJson(imagenUrl, imagenPayload, 25000);
+      if (imagenRes.status === 200 && imagenRes.data?.predictions?.[0]?.bytesBase64Encoded) {
+        const b64 = imagenRes.data.predictions[0].bytesBase64Encoded;
+        console.log('[Thumbnail AI] Success: Image received from Google Imagen 3 (Official)!');
+        return {
+          imageUrl: `data:image/jpeg;base64,${b64}`,
+          provider: 'gemini',
+          modelUsed: 'imagen-3.0-generate-002',
+        };
+      }
+    } catch (imagenErr) {
+      console.warn('[Thumbnail AI] Google Imagen 3 predict attempt notice:', imagenErr instanceof Error ? imagenErr.message : String(imagenErr));
+    }
+
     const candidateImageModels = [
       'gemini-3.1-flash-image',
       'gemini-3-pro-image',
@@ -589,7 +669,7 @@ export async function generateRealAiImage(
     }
   }
 
-  // 2. High-Performance Full HD / 4K Ultra-Sharp AI Diffusion using the Gemini Stage 1 prompt
+  // 3. High-Performance Full HD / 4K Ultra-Sharp AI Diffusion using the Gemini Stage 1 prompt
   console.log('[Thumbnail AI] Stage 2: Synthesizing Ultra-Sharp AI visual buffer on server...');
   const seed = Math.floor(Math.random() * 9999999);
   const targetW = Math.max(1280, Math.min(1920, width || 1920));
@@ -611,8 +691,8 @@ export async function generateRealAiImage(
       const origW = meta.width || outW;
       const origH = meta.height || outH;
 
-      // Cleanly crop off the bottom 3.8% where remote watermarks/logos reside
-      const cleanHeight = Math.max(100, origH - Math.round(origH * 0.038));
+      // Cleanly crop off the bottom 8% where remote watermarks/logos reside
+      const cleanHeight = Math.max(100, origH - Math.round(origH * 0.08));
 
       const enhanced = await sharp(rawBuffer)
         .extract({ left: 0, top: 0, width: origW, height: cleanHeight })

@@ -959,10 +959,9 @@ export async function renderThumbnailCanvas(
     }
 
     // ============================================================
-    // LAYER 7.5: CINEMATIC GOLDEN ENERGY RIBBONS & DUST MOTES
+    // LAYER 7.5: CINEMATIC GOLDEN ENERGY RIBBONS & DUST MOTES (OPTIONAL DECAL)
     // ============================================================
-    const is3DActive = textShadowStyle === '3d_pop' || typographyTreatment === 'gold_embossed_luxury' || isUrdu;
-    if (is3DActive || lightFlare !== 'none') {
+    if (graphicDecal === 'islamic_star') {
       const ribbonCenterY = startY + (lines.length * lineHeight) / 2 - fontSize * 0.2;
       drawGoldenEnergyRibbons(ctx, width, height, ribbonCenterY);
     }
@@ -977,6 +976,7 @@ export async function renderThumbnailCanvas(
     const isBaseTextLight = (textColor || '#FFFDF7').toLowerCase() !== '#ffdf00' && (textColor || '#FFFDF7').toLowerCase() !== '#ffd700';
     const highlightColor = isBaseTextLight ? '#FFDF00' : '#FFFFFF';
     const highlightGlowColor = isBaseTextLight ? 'rgba(255, 215, 0, 0.75)' : 'rgba(255, 255, 255, 0.85)';
+    const is3DActive = textShadowStyle === '3d_pop' || typographyTreatment === 'gold_embossed_luxury' || isUrdu;
 
     const drawStyledSegment = (
       textToDraw: string,
@@ -1219,8 +1219,8 @@ export async function renderThumbnailCanvas(
       }
     });
 
-    // Add specular brilliant 4-point star sparkles on 3D typography
-    if (is3DActive) {
+    // Add specular brilliant 4-point star sparkles on 3D typography (Optional Decal)
+    if (graphicDecal === 'islamic_star') {
       const star1X = isUrdu ? textCenterX + textZoneWidth * 0.32 : textCenterX - textZoneWidth * 0.32;
       const star1Y = startY - fontSize * 0.32;
       drawSpecularStarGlint(ctx, star1X, star1Y, Math.max(5, Math.round(fontSize * 0.10)));
