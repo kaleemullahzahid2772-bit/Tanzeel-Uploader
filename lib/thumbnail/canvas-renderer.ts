@@ -1616,7 +1616,7 @@ export async function renderThumbnailCanvas(
     ctx.save();
     const barH = Math.max(34, Math.round(height * 0.052));
     const barY = height - barH - Math.round(height * 0.026);
-    const handleText = (socialHandle?.trim() || brandName?.trim() || 'tanzeel.org').toLowerCase();
+    const handleText = (socialHandle?.trim() || brandName?.trim() || 'alulama.org').toLowerCase();
     
     ctx.font = `600 ${Math.max(12, Math.round(barH * 0.42))}px 'Montserrat', sans-serif`;
     const textWidth = ctx.measureText(handleText).width;

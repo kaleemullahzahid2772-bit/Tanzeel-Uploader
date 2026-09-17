@@ -141,7 +141,7 @@ export default function ThumbnailMakerPage() {
   // Background Depth Blur & Social Bar State
   const [backgroundBlur, setBackgroundBlur] = useState(false);
   const [showSocialBar, setShowSocialBar] = useState(true);
-  const [socialHandle, setSocialHandle] = useState('tanzeel.org');
+  const [socialHandle, setSocialHandle] = useState('alulama.org');
 
   // Export Resolution & Format Options (Defaults to exact user-selected dimensions)
   const [exportResolution, setExportResolution] = useState<ExportResolutionPreset>('original');
@@ -518,103 +518,9 @@ export default function ThumbnailMakerPage() {
     redrawCanvas();
   }, [redrawCanvas]);
 
-  // Primary Generation Handler with Art Direction
+  // Primary Generation Handler with Art Direction & Instant Auto-Upload to WordPress
   const handleGenerate = async () => {
-    if (!title.trim()) {
-      setErrorMessage('Please enter your blog post title first.');
-      return;
-    }
-
-    setGenerating(true);
-    setGenerationStage('analyzing');
-    setErrorMessage(null);
-    setGeminiNotice(null);
-    setStatusMessage('Analyzing title semantics with Google Gemini reasoning model...');
-
-    // Progress stage timer updates for smooth visual UX
-    const t1 = setTimeout(() => {
-      setGenerationStage('concept');
-      setStatusMessage('Creating visual concept, lighting, and composition plan...');
-    }, 1200);
-
-    const t2 = setTimeout(() => {
-      setGenerationStage('generating');
-      setStatusMessage('Generating high-resolution AI thumbnail visual...');
-    }, 2800);
-
-    try {
-      const res = await fetch('/api/ai/generate-thumbnail', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: title.trim(),
-          slug: (slug.trim() || generateSlugFromTitle(title)).toLowerCase(),
-          width: activeWidth,
-          height: activeHeight,
-          creativeStyle,
-          customPromptTuning: customPromptTuning.trim() || undefined,
-        }),
-      });
-
-      clearTimeout(t1);
-      clearTimeout(t2);
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to generate visual background.');
-      }
-
-      const json = await res.json();
-      const result = json.data;
-
-      setBackgroundImageUrl(result.imageUrl);
-      setVisualConcept(result.concept);
-      setAiProvider(result.provider);
-      setModelUsed(result.modelUsed);
-      if (result.geminiNotice) setGeminiNotice(result.geminiNotice);
-      if (result.plan) setAiPlan(result.plan);
-
-      if (result.recommendedLayout) setCompositionLayout(result.recommendedLayout);
-      if (result.recommendedColorGrading) setColorGrading(result.recommendedColorGrading);
-      if (result.recommendedBorder) setBorderTreatment(result.recommendedBorder);
-      if (result.recommendedTypography) setTypographyTreatment(result.recommendedTypography);
-      if (result.recommendedStyle) setDesignStyle(result.recommendedStyle);
-      if (result.recommendedOverlay) setOverlayOpacity(result.recommendedOverlay);
-
-      // Clean, High-Impact Compositing (No unwanted badges, ribbons, or obstructive cards)
-      setTextBackdropStyle('none');
-      if (result.recommendedTextColor) setTextColor(result.recommendedTextColor);
-      if (result.recommendedTextOutlineEnabled !== undefined) setTextOutlineEnabled(result.recommendedTextOutlineEnabled);
-      if (result.recommendedTextOutlineColor) setTextOutlineColor(result.recommendedTextOutlineColor);
-      if (result.recommendedTextOutlineWidth !== undefined) setTextOutlineWidth(result.recommendedTextOutlineWidth);
-      setBadgeText('');
-      setBadgeStyle('none');
-      setCornerRibbonText('');
-      setCornerRibbonStyle('none');
-      setGraphicDecal('none');
-      setLightFlare('none');
-      setBorderTreatment('none');
-      if (result.recommendedBackgroundBlur !== undefined) setBackgroundBlur(result.recommendedBackgroundBlur);
-      if (result.recommendedClarityFilter !== undefined) setClarityFilter(result.recommendedClarityFilter);
-      if (result.recommendedShowSocialBar !== undefined) setShowSocialBar(result.recommendedShowSocialBar);
-
-      if (result.variations && result.variations.length > 0) {
-        setVariations(result.variations);
-        setActiveVariationId(result.variations[0].id);
-      }
-
-      setGenerationStage('complete');
-      setStatusMessage('Real AI Graphic Thumbnail generated successfully!');
-      setTimeout(() => setStatusMessage(null), 5000);
-    } catch (err: unknown) {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      setGenerationStage('idle');
-      console.error('Thumbnail generation error:', err);
-      setErrorMessage(err instanceof Error ? err.message : 'Generation failed. Please try again.');
-    } finally {
-      setGenerating(false);
-    }
+    await handleUploadToWordPress({ forceGenerateFirst: true });
   };
 
   // Switch Design Variations (Design 1, Design 2, Design 3)
@@ -797,11 +703,11 @@ export default function ThumbnailMakerPage() {
     socialHandle,
   });
 
-  // WordPress Auto Upload Flow
+  // WordPress Auto Upload Flow (Generates, renders, and directly uploads to website without asking permission)
   const handleUploadToWordPress = async (options?: { forceGenerateFirst?: boolean; replaceExisting?: boolean }) => {
     const activeSlug = (slug.trim() || generateSlugFromTitle(title)).toLowerCase();
     if (!title.trim()) {
-      setErrorMessage('Please enter a blog title first.');
+      setErrorMessage('Please enter your blog post title first.');
       return;
     }
     if (!activeSlug) {
@@ -809,25 +715,48 @@ export default function ThumbnailMakerPage() {
       return;
     }
 
+    setGenerating(true);
     setWpModalOpen(true);
     setWpError(null);
     setWpUploadResult(null);
 
+    let t1: NodeJS.Timeout | undefined;
+    let t2: NodeJS.Timeout | undefined;
+
     try {
-      // Step 1: If requested, generate AI image first
+      let currentImageUrl = backgroundImageUrl;
+
+      // Step 1: Generate AI visual background first if requested or not yet present
       if (options?.forceGenerateFirst || (!backgroundImageUrl && !options?.replaceExisting)) {
+        setGenerationStage('analyzing');
         setWpStage('generating');
+        setStatusMessage('Analyzing title and generating AI thumbnail visual...');
+
+        t1 = setTimeout(() => {
+          setGenerationStage('concept');
+          setStatusMessage('Creating visual concept and composition plan...');
+        }, 1200);
+
+        t2 = setTimeout(() => {
+          setGenerationStage('generating');
+          setStatusMessage('Generating high-resolution AI visual background...');
+        }, 2800);
+
         const res = await fetch('/api/ai/generate-thumbnail', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: title.trim(),
+            slug: activeSlug,
             width: activeWidth,
             height: activeHeight,
             creativeStyle,
             customPromptTuning: customPromptTuning.trim() || undefined,
           }),
         });
+
+        if (t1) clearTimeout(t1);
+        if (t2) clearTimeout(t2);
 
         if (!res.ok) {
           const errData = await res.json();
@@ -836,52 +765,93 @@ export default function ThumbnailMakerPage() {
 
         const json = await res.json();
         const result = json.data;
+
+        currentImageUrl = result.imageUrl;
         setBackgroundImageUrl(result.imageUrl);
         setVisualConcept(result.concept);
         setAiProvider(result.provider);
         setModelUsed(result.modelUsed);
         if (result.geminiNotice) setGeminiNotice(result.geminiNotice);
         if (result.plan) setAiPlan(result.plan);
+
+        if (result.recommendedLayout) setCompositionLayout(result.recommendedLayout);
+        if (result.recommendedColorGrading) setColorGrading(result.recommendedColorGrading);
+        if (result.recommendedBorder) setBorderTreatment(result.recommendedBorder);
+        if (result.recommendedTypography) setTypographyTreatment(result.recommendedTypography);
+        if (result.recommendedStyle) setDesignStyle(result.recommendedStyle);
+        if (result.recommendedOverlay) setOverlayOpacity(result.recommendedOverlay);
+
+        // Clean, High-Impact Compositing
+        setTextBackdropStyle('none');
+        if (result.recommendedTextColor) setTextColor(result.recommendedTextColor);
+        if (result.recommendedTextOutlineEnabled !== undefined) setTextOutlineEnabled(result.recommendedTextOutlineEnabled);
+        if (result.recommendedTextOutlineColor) setTextOutlineColor(result.recommendedTextOutlineColor);
+        if (result.recommendedTextOutlineWidth !== undefined) setTextOutlineWidth(result.recommendedTextOutlineWidth);
+        setBadgeText('');
+        setBadgeStyle('none');
+        setCornerRibbonText('');
+        setCornerRibbonStyle('none');
+        setGraphicDecal('none');
+        setLightFlare('none');
+        setBorderTreatment('none');
+        if (result.recommendedBackgroundBlur !== undefined) setBackgroundBlur(result.recommendedBackgroundBlur);
+        if (result.recommendedClarityFilter !== undefined) setClarityFilter(result.recommendedClarityFilter);
+        if (result.recommendedShowSocialBar !== undefined) setShowSocialBar(result.recommendedShowSocialBar);
+
+        if (result.variations && result.variations.length > 0) {
+          setVariations(result.variations);
+          setActiveVariationId(result.variations[0].id);
+        }
+
+        setGenerationStage('complete');
       }
 
-      // Step 2: Render full canvas image to Base64
+      // Step 2: Render full canvas image to Base64 (branding: alulama.org)
       setWpStage('rendering');
-      const currentConfig = getCurrentThumbnailConfig();
+      setStatusMessage('Compositing thumbnail image with alulama.org branding...');
+      const currentConfig: ThumbnailConfig = {
+        ...getCurrentThumbnailConfig(),
+        backgroundImageUrl: currentImageUrl || backgroundImageUrl,
+        socialHandle: 'alulama.org',
+      };
       const imageBase64 = await exportThumbnailDataUrl(currentConfig, exportFormat, exportResolution);
 
-      // Step 3: Check/Find WordPress Post by Slug (unless user already confirmed replace or upload only)
-      if (!options?.replaceExisting) {
-        setWpStage('connecting');
-        setWpStage('finding_post');
+      // Step 3: Check/Find WordPress Post by Slug (Directly find post without halting for permission)
+      setWpStage('connecting');
+      setWpStage('finding_post');
+      setStatusMessage('Connecting to WordPress and finding post...');
+      let targetPostId: number | undefined = undefined;
+      try {
         const findRes = await fetch('/api/wordpress/find-post', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ slug: activeSlug }),
         });
 
-        const matchData: WordPressPostMatch = await findRes.json();
-        setWpPostMatch(matchData);
-
-        // Case A: Post not found
-        if (!matchData.found) {
-          setWpStage('confirm_not_found');
-          return;
+        if (findRes.ok) {
+          const matchData: WordPressPostMatch = await findRes.json();
+          setWpPostMatch(matchData);
+          if (matchData.found && matchData.post_id) {
+            targetPostId = matchData.post_id;
+          }
         }
-
-        // Case B: Post already has featured image
-        if (matchData.has_existing_featured_image) {
-          setWpStage('confirm_replace');
-          return;
-        }
+      } catch (findErr) {
+        console.warn('Find post check failed, proceeding to direct upload:', findErr);
       }
 
-      // Step 4 & 5: Upload Media & Set Featured Image
-      await executeWordPressUpload(imageBase64, activeSlug, wpPostMatch?.post_id);
+      // Step 4 & 5: Upload Media & Set Featured Image Directly (No permission prompt)
+      await executeWordPressUpload(imageBase64, activeSlug, targetPostId);
     } catch (err: unknown) {
-      console.error('WordPress upload error:', err);
+      if (t1) clearTimeout(t1);
+      if (t2) clearTimeout(t2);
+      setGenerationStage('idle');
+      console.error('WordPress auto-upload error:', err);
       const msg = err instanceof Error ? err.message : 'WordPress auto-upload failed';
       setWpError(msg);
+      setErrorMessage(msg);
       setWpStage('error');
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -889,6 +859,7 @@ export default function ThumbnailMakerPage() {
   const executeWordPressUpload = async (imageBase64: string, activeSlug: string, postId?: number) => {
     try {
       setWpStage('uploading');
+      setStatusMessage('Uploading thumbnail to WordPress Media Library...');
       const uploadRes = await fetch('/api/wordpress/upload-featured-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -900,6 +871,7 @@ export default function ThumbnailMakerPage() {
           post_title: title.trim(),
           postId: postId,
           post_id: postId,
+          allowUploadWithoutPost: true,
           mimeType: exportFormat === 'jpeg' ? 'image/jpeg' : 'image/png',
           image_format: exportFormat,
         }),
@@ -913,11 +885,12 @@ export default function ThumbnailMakerPage() {
       setWpStage('setting_featured');
       setWpUploadResult(uploadData);
       setWpStage('complete');
-      setStatusMessage(`Featured image attached to WordPress post "${uploadData.post_title || activeSlug}"!`);
+      setStatusMessage(`Featured image successfully uploaded and attached to "${uploadData.post_title || activeSlug}"!`);
       setTimeout(() => setStatusMessage(null), 6000);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to finalize WordPress upload';
       setWpError(msg);
+      setErrorMessage(msg);
       setWpStage('error');
     }
   };
