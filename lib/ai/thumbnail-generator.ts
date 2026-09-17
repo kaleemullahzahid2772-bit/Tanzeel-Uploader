@@ -143,6 +143,12 @@ export interface GeneratedBackgroundResult {
   recommendedBackgroundBlur?: boolean;
   recommendedClarityFilter?: boolean;
   recommendedShowSocialBar?: boolean;
+  // High-CTR 2-Tier Smart Hook Fields
+  headlineHook?: string;
+  coreQuestion?: string;
+  hookColor?: string;
+  subjectSide?: 'right' | 'left';
+  textSide?: 'left' | 'right';
 }
 
 /**
@@ -189,59 +195,56 @@ export async function generateStructuredThumbnailPlan(
 The final thumbnail MUST look like it was professionally designed by a human designer in Adobe Photoshop, NOT like a generic AI-generated image.
 The design must possess professional visual hierarchy, dramatic studio lighting, controlled contrast, cinematic composition, sharp details, and intentional graphic layering. Never produce a cheap, generic, blurry, or obviously AI-generated appearance.
 
-HIGH-CTR VISUAL HOOK & FOCAL POINT (MANDATORY):
+    HIGH-CTR VISUAL HOOK & FOCAL POINT (MANDATORY):
 - DO NOT generate a generic, vague, or empty background.
-- The composition MUST feature ONE clear, dramatic focal point / visual hook relevant to the topic (e.g., an authentic carved marble ablution fountain with crystalline water, an ancient leather-bound illuminated manuscript resting on an ornate carved rehal, a dramatic glowing 3D symbolic element, or an authoritative symbolic object).
-- The focal subject must have sharp, tangible physical presence and 3D depth.
+- NEVER default to an Ottoman mosque or Quran rehal unless the title is SPECIFICALLY about Quran recitation or prayer in a mosque.
+- The composition MUST feature ONE clear, dramatic focal subject relevant to the EXACT TOPIC:
+  * For Umrah, Hajj, or Hair Trimming / Halq / Qasr (احرام, حلق, قصر, عمرہ, حج):
+    Show a Muslim male pilgrim dressed in clean white unstitched cotton ihram garments seen from behind or over-the-shoulder, in crisp focus with professional steel barber scissors or razor, with the breathtaking glowing minarets of Masjid al-Haram / Makkah clock tower illuminated in the warm atmospheric night sky.
+  * For Wudu, Ghusl, Water, or Ritual Purity (وضو, غسل, طہارت, پاکی):
+    Show pure crystalline water flowing from an authentic antique brass or carved marble spout into cupped hands, sparkling water droplets catching warm morning light, serene marble courtyard background.
+  * For Halal Business, Wealth, or E-Commerce (کاروبار, تجارت, کمائی, رزق حلال, پیسہ):
+    Show an executive modern mahogany workspace, antique Islamic gold dinar coins or scales of justice, sleek laptop and financial ledger in warm cinematic lighting.
+  * For Parenting, Children, or Education (والدین, بچے, تربیت, اولاد):
+    Show an authentic, heartwarming scene of a caring Muslim father or teacher guiding a young boy with warm golden sunbeams, books on a wooden table, inspiring family ambiance.
+  * For Quran Recitation, Tajweed, or Hifz (قرآن, تلاوت, تجوید, حفظ):
+    Show an exquisite illuminated gold-leaf Holy Quran manuscript on an ornate carved wooden rehal bathed in divine sunbeams.
+  * For Hadith, Sunnah, or Islamic Scholars (حدیث, سنت, علماء):
+    Show an authentic classical Islamic library study with leather-bound manuscripts with gold gilt, vintage brass lantern, and warm amber light.
+  * For Prayer, Namaz, or Sajdah (نماز, سجدہ):
+    Show a reverent worshipper in quiet devotion with golden sunbeams filtering through Andalusian arches.
 
-DRAMATIC STUDIO LIGHTING & DEPTH OF FIELD:
-- Warm directional key light (golden hour sunbeam, warm spotlight, or soft lantern glow).
-- Sharp rim lighting / edge highlights separating the subject crisply from the background.
-- Glowing atmospheric accents (subtle dust motes, ethereal luminescence, radiant amber highlights).
-- Cinematic depth of field with creamy background blur (f/1.8 lens bokeh) to make the subject pop.
+ASYMMETRIC COMPOSITION (LEFT-TEXT / RIGHT-SUBJECT):
+- Crucial Layout Rule: Place the primary visual subject on the RIGHT side of the frame (subject_side = "right").
+- Reserve 50% to 55% intentional, expansive, dark atmospheric negative space on the LEFT side (text_side = "left") specifically allocated for bold typography compositing.
+- The negative space on the left MUST have a dark, clean, uncluttered atmospheric gradient/bokeh so high-contrast white and gold headline typography pops with 100% clarity.
 
-INTENTIONAL NEGATIVE SPACE FOR TYPOGRAPHY:
-- Reserve 50% to 60% intentional clean, unobstructed negative space (${isUrdu ? 'on the right side or center' : 'on the left side or center'}) specifically allocated for bold typography compositing.
-- The negative space must have subtle atmospheric dark bokeh or soft studio gradient so bold white and gold headline text pops with high contrast without visual clash.
-
-STRICT 16:9 WIDESCREEN COMPOSITION:
+DRAMATIC CINEMATIC LIGHTING & OPTICS:
+- Warm directional key light and dramatic rim lighting separating the subject crisply from the background.
+- Cinematic shallow depth of field with creamy f/1.8 background blur (bokeh) to make the subject pop.
 - Strict 16:9 widescreen format (1280x720 / 1920x1080).
-- Modern studio-grade YouTube thumbnail aesthetics.
 
 STRICT HALAL & CLEAN RULES:
 - Strictly NO text, words, letters, watermarks, signatures, or logos in the generated image.
-- Strictly respect Halal visual guidelines (no female imagery, no full facial human portraits).
+- Halal visual guidelines: NO female figures. NO visible front facial features (compose from behind, over-the-shoulder, silhouette, or focus on hands, actions, and objects).
 
-INPUT UNDERSTANDING:
-- Article Title (PRIMARY semantic source): Understand the core subject, emotional tone, and intellectual hook.
-${slug ? `- Article URL Slug (Supporting context only): "${slug}"` : ''}
-- Do NOT simply convert the title into a literal image. Think like a professional editorial thumbnail designer choosing an evocative visual metaphor.
-
-DOMAIN & ISLAMIC VISUAL STORYTELLING (ULTRA-LUXURY & CINEMATIC):
-- If the title discusses Prayer, Namaz, Worship, Sitting Prayer, or Islamic Rulings:
-  Compose a grand, breathtaking Ottoman or Andalusian mosque sanctuary with towering carved marble columns, arched vaulted ceilings, and glowing crystal chandeliers casting warm ambient light.
-  Include in the composition: an illuminated open Holy Quran resting on an intricately carved wooden Rehal (bookstand) with divine golden light rays radiating from its pages, and a reverent Muslim worshipper in traditional attire (kufi cap, sitting on a chair or in prayer) with cinematic golden rim lighting. The marble floor should feature soft reflections and volumetric golden dust motes.
-- If the title discusses Qur'an, Tajweed, Tilawat, or Hifz:
-  An exquisite illuminated gold-leaf Holy Quran manuscript on a majestic carved wooden Rehal, bathed in radiant divine golden rays, with warm dawn light filtering through intricate mashrabiya geometric lattices, in a tranquil grand mosque sanctuary.
-- If the title discusses Hadith, Sunnah, Islamic Scholar, or Deen:
-  A grand classical Islamic scholarly library or sanctuary, with leather-bound manuscripts with gold gilt, soaring architectural arches, warm lantern illumination, and profound intellectual dignity.
-- If the title discusses General Guidance, Life, or Wisdom:
-  Create an evocative, cinematic visual metaphor with deep emotional resonance, dramatic volumetric lighting, and serene spiritual grandeur.
-
-CRITICAL COMPOSITION & BACKGROUND-ONLY RULE:
-1. The image generation model must ONLY generate the PHOTOREALISTIC BACKGROUND SCENE.
-2. Strictly DO NOT ask for text, words, letters, or typography inside the generated image. The exact article title is added afterward as a real typography layer using an external graphics compositing system.
-3. Aspect Ratio: Strict 16:9 widescreen format (1280x720 / 1920x1080).
-4. Frame the composition so the main visual hooks (illuminated Quran on rehal, worshipper, grand arches) anchor the sides and bottom, leaving the upper-middle zone bathed in soft atmospheric depth for the bold 3D headline.
-5. In 'final_image_prompt': Describe an 8K photorealistic, cinematic scene with camera angle, depth of field, volumetric lighting, realistic materials, and atmospheric background.
-6. In 'negative_prompt': Forbid: text in image, words, letters, watermarks, signatures, logos, distorted hands, bad anatomy, low resolution, noise, cartoonish look, generic stock photo, female imagery.
-${styleGuidance ? `7. ${styleGuidance}` : ''}
-${userTuningPrompt ? `8. ${userTuningPrompt}` : ''}
+2-TIER TYPOGRAPHY EXTRACTION (URDU):
+Break down the title into a powerful, high-CTR 2-tier editorial headline:
+1. "headline_hook": 2 to 4 words. High-CTR provocative, urgent, or clarifying hook in Urdu (e.g. "عمرہ کی ہدایات", "عمرہ کی بڑی غلطی", "وضو کا صحیح طریقہ", "نماز کی اہم غلطی").
+2. "core_question": 3 to 6 words. Clear, punchy central question or topic in Urdu (e.g. "مکمل بال کاٹنے کا حکم کیا ہے؟", "کیا احرام کھل جائے گا؟", "کیا دوبارہ وضو کرنا پڑے گا؟").
+3. "hook_color": Vibrant golden-yellow "#FFD700" or neon amber "#FFA500".
+4. "subject_side": "right"
+5. "text_side": "left"
 
 Return ONLY a valid JSON object matching this schema with no markdown ticks:
 {
   "topic": "string",
   "category": "string",
+  "headline_hook": "string",
+  "core_question": "string",
+  "hook_color": "#FFD700",
+  "subject_side": "right",
+  "text_side": "left",
   "visual_concept": "string",
   "main_subject": "string",
   "background_concept": "string",
@@ -250,13 +253,14 @@ Return ONLY a valid JSON object matching this schema with no markdown ticks:
   "composition": "string",
   "mood": "string",
   "typography_style": "string",
-  "text_placement": "left" | "right" | "bottom" | "center",
+  "text_placement": "left",
   "negative_prompt": "string",
   "final_image_prompt": "string"
 }`;
 
   // Candidate models in order of capability & speed (Google Gemini Reasoning Models)
   const textModels = [
+    'gemini-3.5-flash',
     'gemini-flash-latest',
     'gemini-flash-lite-latest',
     'gemini-2.5-flash',
@@ -293,10 +297,15 @@ Return ONLY a valid JSON object matching this schema with no markdown ticks:
           const parsed = JSON.parse(cleaned) as StructuredThumbnailPlan;
 
           if (parsed.final_image_prompt && parsed.visual_concept) {
-            console.log(`[Thumbnail AI] Stage 1 Success with model "${model}": Topic="${parsed.topic}", Category="${parsed.category}"`);
+            console.log(`[Thumbnail AI] Stage 1 Success with model "${model}": Topic="${parsed.topic}", Hook="${parsed.headline_hook}", Question="${parsed.core_question}"`);
             return {
               topic: parsed.topic || title,
               category: parsed.category || 'General',
+              headline_hook: parsed.headline_hook,
+              core_question: parsed.core_question,
+              subject_side: parsed.subject_side || 'right',
+              text_side: parsed.text_side || 'left',
+              hook_color: parsed.hook_color || '#FFD700',
               visual_concept: parsed.visual_concept,
               main_subject: parsed.main_subject || 'Central focal subject',
               background_concept: parsed.background_concept || 'Atmospheric cinematic background',
@@ -304,10 +313,10 @@ Return ONLY a valid JSON object matching this schema with no markdown ticks:
                 ? parsed.color_palette
                 : ['#0F4C3A', '#C9A227', '#0A192F'],
               lighting: parsed.lighting || 'Cinematic dramatic volumetric lighting',
-              composition: parsed.composition || 'Rule of thirds with clean negative space',
+              composition: parsed.composition || 'Asymmetric editorial layout with visual on right and text on left',
               mood: parsed.mood || 'Inspiring, high-impact',
-              typography_style: parsed.typography_style || 'Bold high-contrast headline',
-              text_placement: isUrdu ? 'center' : (parsed.text_placement || 'center'),
+              typography_style: parsed.typography_style || 'Bold 2-tier high-contrast headline',
+              text_placement: parsed.text_side || 'left',
               negative_prompt: parsed.negative_prompt || 'text, blurry, watermark, bad anatomy, deformed',
               final_image_prompt: parsed.final_image_prompt,
             };
@@ -332,6 +341,7 @@ Return ONLY a valid JSON object matching this schema with no markdown ticks:
  */
 function buildContextualBackupPlan(title: string, isUrdu: boolean): StructuredThumbnailPlan {
   const lower = title.toLowerCase();
+  const isUmrahOrHajj = lower.includes('umrah') || lower.includes('عمرہ') || lower.includes('hajj') || lower.includes('حج') || lower.includes('ihram') || lower.includes('احرام') || lower.includes('طواف') || lower.includes('tawaf') || lower.includes('kaaba') || lower.includes('کعبہ') || lower.includes('حلق') || lower.includes('قصر') || lower.includes('بال') || lower.includes('منڈوانے');
   const isBusiness = lower.includes('business') || lower.includes('online business') || lower.includes('karobar') || lower.includes('کاروبار') || lower.includes('تجارت') || lower.includes('money') || lower.includes('earn') || lower.includes('startup') || lower.includes('ecommerce') || lower.includes('e-commerce');
   const isYoutubeTech = lower.includes('youtube') || lower.includes('grow') || lower.includes('views') || lower.includes('channel') || lower.includes('video') || lower.includes('subscriber');
   const isAiTools = lower.includes('ai') || lower.includes('tools') || lower.includes('artificial intelligence') || lower.includes('tech') || lower.includes('chatgpt');
@@ -339,6 +349,29 @@ function buildContextualBackupPlan(title: string, isUrdu: boolean): StructuredTh
   const isQuran = lower.includes('quran') || lower.includes('قرآن') || lower.includes('تلاوت') || lower.includes('تجوید') || lower.includes('حافظ') || lower.includes('surah') || lower.includes('سورت');
   const isFiqhOrWater = lower.includes('wudu') || lower.includes('وضو') || lower.includes('ghusl') || lower.includes('غسل') || lower.includes('water') || lower.includes('پانی') || lower.includes('taharah') || lower.includes('طہارت') || lower.includes('پاک') || lower.includes('حلال') || lower.includes('فتوی') || lower.includes('مسئلہ');
   const isHadith = lower.includes('hadith') || lower.includes('حدیث') || lower.includes('sunnah') || lower.includes('سنت') || lower.includes('bukhari') || lower.includes('muslim');
+
+  if (isUmrahOrHajj) {
+    return {
+      topic: 'Umrah Rulings & Hair Trimming Guidance',
+      category: 'Islamic Rituals & Umrah Guidance',
+      headline_hook: 'عمرہ کی ہدایات',
+      core_question: 'مکمل بال کاٹنے کا حکم کیا ہے؟',
+      hook_color: '#FFD700',
+      subject_side: 'right',
+      text_side: 'left',
+      visual_concept: 'Reverent Muslim pilgrim in clean white ihram garments with barber steel scissors in crisp focus, holy minarets of Makkah at night in background',
+      main_subject: 'Muslim male pilgrim dressed in white cotton ihram seen from behind or over-the-shoulder, sharp steel barber scissors held with precision, golden rim lighting',
+      background_concept: 'Breathtaking nighttime atmosphere of Makkah with illuminated golden minarets and deep indigo night sky in soft focus',
+      color_palette: ['#FFD700', '#FFFFFF', '#0B132B'],
+      lighting: 'Dramatic golden rim lighting outlining the pilgrim and scissors, glowing warm ambient light from Makkah minarets',
+      composition: 'Subject composed on the right side, expansive clean dark atmospheric negative space on the left for title compositing',
+      mood: 'Spiritual, prestigious, authoritative, urgent',
+      typography_style: 'Bold 2-tier high-contrast headline with golden hook and white question',
+      text_placement: 'left',
+      negative_prompt: 'text, letters, words, watermark, logo, bad anatomy, female imagery, front face portrait, cartoon, blurry',
+      final_image_prompt: 'Cinematic 8k editorial photograph of a Muslim male pilgrim dressed in traditional white cotton ihram garment, viewed from behind or over-the-shoulder. Crisp focus on professional steel scissors cutting hair in the holy precinct, with the glowing golden minarets of Masjid al-Haram and warm starry night sky in the soft-focus background. Powerful golden rim lighting, dramatic depth of field with f/1.8 lens bokeh, composition anchored on the right side, leaving expansive dark atmospheric negative space on the left side for title compositing, Hasselblad medium format photography, strictly no text.',
+    };
+  }
 
   if (isFiqhOrWater) {
     return {
@@ -562,9 +595,12 @@ export async function generateRealAiImage(
   const targetW = Math.max(1280, Math.min(1920, width || 1920));
   const targetH = Math.round((targetW * (height || 1080)) / (width || 1920));
 
-  const visualTokens = 'award-winning 8k commercial photograph, grand Ottoman mosque interior, glowing crystal chandeliers, illuminated open Holy Quran on ornate carved wooden rehal, dramatic volumetric god rays, floating golden dust motes, warm golden key light, sharp rim light separation, raytraced marble reflections, cinematic depth of field, f/1.8 lens bokeh, masterpiece, Hasselblad medium format, ultra-detailed 16:9 composition, vivid rich amber and deep teal colors, razor-sharp focus';
+  const visualTokens = 'award-winning 8k editorial commercial photograph, dramatic volumetric atmospheric lighting, warm cinematic key light, sharp rim light edge separation, raytraced specular highlights, cinematic depth of field, f/1.8 lens bokeh, masterpiece, Hasselblad medium format, ultra-detailed 16:9 widescreen composition, rich colors, razor-sharp focus';
+  const subjectPlacement = plan.subject_side === 'left'
+    ? 'focal subject composed on the left side, clean expansive dark negative space on the right side for typography'
+    : 'focal subject composed on the right side, clean expansive dark negative space on the left side for typography';
   const cleanPrompt = encodeURIComponent(
-    `${plan.final_image_prompt}, ${visualTokens}, clean expansive space on ${plan.text_placement} for typography`
+    `${plan.final_image_prompt}, ${visualTokens}, ${subjectPlacement}`
   );
   const diffusionUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${targetW}&height=${targetH}&seed=${seed}&nologo=true&private=true&model=flux&enhance=true`;
 
@@ -691,16 +727,20 @@ export function deriveDesignStyling(plan: StructuredThumbnailPlan, isUrdu: boole
     recommendedColorGrading = 'clean_editorial';
   }
 
-  // Consistent Center Focus for perfect title framing
-  const recommendedLayout: CompositionLayout = 'center_focus';
+  // High-CTR Asymmetric Layout (Visual subject on right, bold typography on left)
+  const recommendedLayout: CompositionLayout = (plan.subject_side === 'right' || plan.text_side === 'left')
+    ? 'subject_right_text_left'
+    : (plan.subject_side === 'left' || plan.text_side === 'right')
+    ? 'subject_left_text_right'
+    : 'center_focus';
 
   const variations: DesignVariation[] = [
     {
       id: 'var_ctr_card',
-      name: 'High-CTR Question Card',
+      name: 'High-CTR Editorial Card',
       description: 'Defined high-contrast plate with gold/emerald typography, badges, and decals for maximum clicks',
       style: 'cinematic_islamic',
-      layout: 'center_focus',
+      layout: recommendedLayout,
       colorGrading: recommendedColorGrading,
       borderTreatment: 'none',
       typographyTreatment: isUrdu ? 'white_nastaleeq_shadow' : 'gold_highlighted_keyword',
@@ -831,5 +871,10 @@ export async function generateThumbnailBackground(
     recommendedBackgroundBlur: styling.recommendedBackgroundBlur,
     recommendedClarityFilter: styling.recommendedClarityFilter,
     recommendedShowSocialBar: styling.recommendedShowSocialBar,
+    headlineHook: plan.headline_hook,
+    coreQuestion: plan.core_question,
+    hookColor: plan.hook_color || '#FFD700',
+    subjectSide: plan.subject_side || 'right',
+    textSide: plan.text_side || 'left',
   };
 }

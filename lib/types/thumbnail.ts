@@ -269,6 +269,12 @@ export interface ThumbnailConfig {
   backgroundBlur?: boolean;
   showSocialBar?: boolean;
   socialHandle?: string;
+  // High-CTR 2-Tier Smart Hook & Asymmetric Storytelling Layout
+  headlineHook?: string;
+  coreQuestion?: string;
+  hookColor?: string;
+  subjectSide?: 'right' | 'left';
+  textSide?: 'left' | 'right';
 }
 
 export interface ProThumbnailTheme {
@@ -441,4 +447,10 @@ export interface StructuredThumbnailPlan {
   text_placement: 'left' | 'right' | 'bottom' | 'center';
   negative_prompt: string;
   final_image_prompt: string;
+  // High-CTR 2-Tier Smart Hook & Asymmetric Storytelling Fields
+  headline_hook?: string;
+  core_question?: string;
+  subject_side?: 'right' | 'left';
+  text_side?: 'left' | 'right';
+  hook_color?: string;
 }

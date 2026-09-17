@@ -578,8 +578,11 @@ export async function renderThumbnailCanvas(
     else if (overlayOpacity === 'dark') baseAlpha = 0.85;
     else if (overlayOpacity === 'none') baseAlpha = 0.15;
 
+    const isAsymmetricLeft = config.textSide === 'left' || compositionLayout === 'subject_right_text_left' || (Boolean(config.headlineHook && config.coreQuestion) && config.textSide !== 'right');
+    const isAsymmetricRight = config.textSide === 'right' || compositionLayout === 'subject_left_text_right';
+
     ctx.save();
-    if (compositionLayout === 'subject_left_text_right') {
+    if (isAsymmetricRight) {
       // Subject is on the left, shade the RIGHT side for text legibility
       const dirGrad = ctx.createLinearGradient(0, 0, width, 0);
       dirGrad.addColorStop(0, `rgba(0, 0, 0, ${baseAlpha * 0.1})`);
@@ -587,12 +590,13 @@ export async function renderThumbnailCanvas(
       dirGrad.addColorStop(1, `rgba(0, 0, 0, ${Math.min(0.95, baseAlpha * 1.3)})`);
       ctx.fillStyle = dirGrad;
       ctx.fillRect(0, 0, width, height);
-    } else if (compositionLayout === 'subject_right_text_left') {
+    } else if (isAsymmetricLeft) {
       // Subject is on the right, shade the LEFT side for text legibility
       const dirGrad = ctx.createLinearGradient(0, 0, width, 0);
-      dirGrad.addColorStop(0, `rgba(0, 0, 0, ${Math.min(0.95, baseAlpha * 1.3)})`);
-      dirGrad.addColorStop(0.55, `rgba(0, 0, 0, ${baseAlpha * 0.55})`);
-      dirGrad.addColorStop(1, `rgba(0, 0, 0, ${baseAlpha * 0.1})`);
+      dirGrad.addColorStop(0, `rgba(0, 0, 0, ${Math.min(0.95, baseAlpha * 1.35)})`);
+      dirGrad.addColorStop(0.55, `rgba(0, 0, 0, ${baseAlpha * 0.70})`);
+      dirGrad.addColorStop(0.85, `rgba(0, 0, 0, ${baseAlpha * 0.20})`);
+      dirGrad.addColorStop(1, `rgba(0, 0, 0, ${baseAlpha * 0.05})`);
       ctx.fillStyle = dirGrad;
       ctx.fillRect(0, 0, width, height);
     } else if (compositionLayout === 'subject_bottom_text_top') {
@@ -673,20 +677,21 @@ export async function renderThumbnailCanvas(
   // LAYER 3 & 4: ADVANCED TYPOGRAPHY & OUTLINE COMPOSITING
   // ============================================================
   // Calculate text bounding area based on composition layout
-  // When titlePosition is 'center', user strictly wants dead-center alignment
-  const isDeadCenter = titlePosition === 'center';
+  const isVerticalCenter = titlePosition === 'center';
+  const isAsymmetricLeft = config.textSide === 'left' || compositionLayout === 'subject_right_text_left' || (Boolean(config.headlineHook && config.coreQuestion) && config.textSide !== 'right');
+  const isAsymmetricRight = config.textSide === 'right' || compositionLayout === 'subject_left_text_right';
 
   let textZoneX = Math.round(width * 0.05);
   let textZoneWidth = Math.round(width * 0.90);
 
-  if (!isDeadCenter && compositionLayout === 'subject_left_text_right') {
-    textZoneX = Math.round(width * 0.40);
-    textZoneWidth = Math.round(width * 0.55);
-  } else if (!isDeadCenter && compositionLayout === 'subject_right_text_left') {
+  if (isAsymmetricLeft) {
     textZoneX = Math.round(width * 0.05);
-    textZoneWidth = Math.round(width * 0.55);
+    textZoneWidth = Math.round(width * 0.52);
+  } else if (isAsymmetricRight) {
+    textZoneX = Math.round(width * 0.43);
+    textZoneWidth = Math.round(width * 0.52);
   } else {
-    // Exact Middle Center (either compositionLayout === 'center_focus' or titlePosition === 'center')
+    // Exact Middle Center
     textZoneX = Math.round(width * 0.05);
     textZoneWidth = Math.round(width * 0.90);
   }
@@ -696,25 +701,47 @@ export async function renderThumbnailCanvas(
   const englishFontFamily = `'Montserrat', 'Inter', ${headingFont ? `'${headingFont}', ` : ''}'Impact', 'Arial Black', system-ui, sans-serif`;
   const finalFontFamily = isUrdu ? urduFontFamily : englishFontFamily;
 
-  // Dynamic Font Sizing & 2-Line Balanced Layout (Guarantees max 2 lines, maximum visual punch)
-  let initialFontSize = isUrdu ? Math.round(width * 0.078) : Math.round(width * 0.074);
-  if (title.length > 85) initialFontSize = Math.round(initialFontSize * 0.74);
-  else if (title.length > 55) initialFontSize = Math.round(initialFontSize * 0.86);
-  else if (title.length < 25) initialFontSize = Math.round(initialFontSize * 1.20);
+  // Dynamic Font Sizing & 2-Line Balanced Layout
+  let lines: string[];
+  let fontSize: number;
 
-  if (fontSizeMultiplier && fontSizeMultiplier !== 1.0) {
-    initialFontSize = Math.round(initialFontSize * Math.max(0.6, Math.min(1.8, fontSizeMultiplier)));
+  if (config.headlineHook && config.coreQuestion) {
+    lines = [config.headlineHook.trim(), config.coreQuestion.trim()];
+    let initialFontSize = isUrdu ? Math.round(width * 0.076) : Math.round(width * 0.070);
+    if (fontSizeMultiplier && fontSizeMultiplier !== 1.0) {
+      initialFontSize = Math.round(initialFontSize * Math.max(0.6, Math.min(1.8, fontSizeMultiplier)));
+    }
+    ctx.font = `bold ${initialFontSize}px ${finalFontFamily}`;
+    const maxLineW = Math.max(
+      ctx.measureText(lines[0]).width,
+      ctx.measureText(lines[1]).width
+    );
+    let fs = initialFontSize;
+    if (maxLineW > textZoneWidth * 0.94) {
+      fs = Math.round(fs * ((textZoneWidth * 0.94) / maxLineW));
+    }
+    fontSize = Math.max(isUrdu ? 36 : 26, fs);
+  } else {
+    let initialFontSize = isUrdu ? Math.round(width * 0.078) : Math.round(width * 0.074);
+    if (title.length > 85) initialFontSize = Math.round(initialFontSize * 0.74);
+    else if (title.length > 55) initialFontSize = Math.round(initialFontSize * 0.86);
+    else if (title.length < 25) initialFontSize = Math.round(initialFontSize * 1.20);
+
+    if (fontSizeMultiplier && fontSizeMultiplier !== 1.0) {
+      initialFontSize = Math.round(initialFontSize * Math.max(0.6, Math.min(1.8, fontSizeMultiplier)));
+    }
+
+    const balanced = getBalancedTwoLines(
+      ctx,
+      title,
+      textZoneWidth,
+      initialFontSize,
+      finalFontFamily,
+      isUrdu
+    );
+    lines = balanced.lines;
+    fontSize = balanced.fontSize;
   }
-
-  // Format into maximum 2 balanced lines with dynamic font scaling
-  const { lines, fontSize } = getBalancedTwoLines(
-    ctx,
-    title,
-    textZoneWidth,
-    initialFontSize,
-    finalFontFamily,
-    isUrdu
-  );
 
   ctx.font = `bold ${fontSize}px ${finalFontFamily}`;
   if (isUrdu) ctx.direction = 'rtl';
@@ -732,9 +759,9 @@ export async function renderThumbnailCanvas(
 
   // Vertical position with exact mathematical centering
   let startY: number;
-  if (!isDeadCenter && (titlePosition === 'top' || compositionLayout === 'subject_bottom_text_top')) {
+  if (!isVerticalCenter && (titlePosition === 'top' || compositionLayout === 'subject_bottom_text_top')) {
     startY = Math.round(height * 0.16) + fontSize;
-  } else if (!isDeadCenter && titlePosition === 'bottom') {
+  } else if (!isVerticalCenter && titlePosition === 'bottom') {
     startY = height - Math.round(height * 0.14) - totalTextHeight + fontSize;
   } else {
     // Exact Middle Center (Vertical & Horizontal Harmony)
@@ -783,7 +810,10 @@ export async function renderThumbnailCanvas(
       let boxW = textZoneWidth + padX * 2;
       let boxX = textZoneX - padX;
 
-      if (isDeadCenter || textAlign === 'center') {
+      if (isAsymmetricLeft || isAsymmetricRight) {
+        boxW = Math.min(textZoneWidth + padX * 2, maxLineWidth + padX * 2.4);
+        boxX = Math.round(textZoneX + (textZoneWidth - boxW) / 2);
+      } else if (isVerticalCenter || textAlign === 'center') {
         boxW = Math.min(textZoneWidth + padX * 2, maxLineWidth + padX * 2.4);
         boxX = Math.round((width - boxW) / 2);
       }
@@ -874,7 +904,9 @@ export async function renderThumbnailCanvas(
       // Multi-stage ambient occlusion & soft atmospheric depth composite
       ctx.save();
       const textCenterY = startY + totalTextHeight / 2 - fontSize * 0.35;
-      const textCenterX = isDeadCenter || isUrdu || textAlign === 'center'
+      const textCenterX = (isAsymmetricLeft || isAsymmetricRight)
+        ? Math.round(textZoneX + textZoneWidth / 2)
+        : (isVerticalCenter || isUrdu || textAlign === 'center')
         ? Math.round(width / 2)
         : Math.round(textZoneX + textZoneWidth / 2);
 
@@ -1101,13 +1133,23 @@ export async function renderThumbnailCanvas(
     };
 
     // Draw Headline Lines with Keyword Highlighting
-    const textCenterX = isDeadCenter || isUrdu || textAlign === 'center'
+    const textCenterX = (isAsymmetricLeft || isAsymmetricRight)
+      ? Math.round(textZoneX + textZoneWidth / 2)
+      : (isVerticalCenter || isUrdu || textAlign === 'center')
       ? Math.round(width / 2)
       : Math.round(textZoneX + textZoneWidth / 2);
 
     lines.forEach((line, index) => {
       const y = startY + index * lineHeight;
       const lineWords = line.trim().split(/\s+/).filter(Boolean);
+
+      // Smart 2-Tier Mode: Line 0 = Gold Hook, Line 1 = White Question
+      if (config.headlineHook && config.coreQuestion) {
+        const fillCol = index === 0 ? (config.hookColor || '#FFD700') : (textColor || '#FFFFFF');
+        const isHl = index === 0;
+        drawStyledSegment(line, textCenterX, y, fillCol, 'center', isHl, index);
+        return;
+      }
 
       // Check if line contains any highlight keywords
       const hasHighlightWord = lineWords.some((w) => highlightKeywords.has(cleanPunctuation(w)));
@@ -1119,7 +1161,9 @@ export async function renderThumbnailCanvas(
           : textColor;
         const isHl = fillCol === highlightColor;
 
-        if (isDeadCenter || isUrdu || textAlign === 'center') {
+        if (isAsymmetricLeft || isAsymmetricRight) {
+          drawStyledSegment(line, textCenterX, y, fillCol, 'center', isHl, index);
+        } else if (isVerticalCenter || isUrdu || textAlign === 'center') {
           drawStyledSegment(line, textCenterX, y, fillCol, 'center', isHl, index);
         } else if (textAlign === 'right') {
           drawStyledSegment(line, textZoneX + textZoneWidth, y, fillCol, 'right', isHl, index);
@@ -1147,7 +1191,7 @@ export async function renderThumbnailCanvas(
         let startLeftX = textCenterX - totalLineWidth / 2;
         let startRightX = textCenterX + totalLineWidth / 2;
 
-        if (!isDeadCenter && !isUrdu) {
+        if (!isVerticalCenter && !isUrdu) {
           if (textAlign === 'left') {
             startLeftX = textZoneX;
             startRightX = textZoneX + totalLineWidth;
@@ -1201,10 +1245,12 @@ export async function renderThumbnailCanvas(
       const pillW = textMetrics.width + pillPadX * 2 + badgeFontSize;
       const pillH = badgeFontSize + pillPadY * 2;
 
-      let pillX = Math.round((width - pillW) / 2);
-      if (!isDeadCenter && !isUrdu && textAlign === 'right') {
+      let pillX = (isAsymmetricLeft || isAsymmetricRight)
+        ? Math.round(textZoneX + (textZoneWidth - pillW) / 2)
+        : Math.round((width - pillW) / 2);
+      if (!isVerticalCenter && !isUrdu && textAlign === 'right') {
         pillX = textZoneX + textZoneWidth - pillW;
-      } else if (!isDeadCenter && !isUrdu && textAlign === 'left') {
+      } else if (!isVerticalCenter && !isUrdu && textAlign === 'left') {
         pillX = textZoneX;
       }
       const pillY = Math.max(20, startY - fontSize - pillH - Math.round(height * 0.025));

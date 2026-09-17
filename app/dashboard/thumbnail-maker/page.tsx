@@ -143,6 +143,13 @@ export default function ThumbnailMakerPage() {
   const [showSocialBar, setShowSocialBar] = useState(true);
   const [socialHandle, setSocialHandle] = useState('alulama.org');
 
+  // Smart 2-Tier AI Typography & Asymmetric Layout State
+  const [headlineHook, setHeadlineHook] = useState('');
+  const [coreQuestion, setCoreQuestion] = useState('');
+  const [hookColor, setHookColor] = useState('#FFD700');
+  const [subjectSide, setSubjectSide] = useState<'right' | 'left'>('right');
+  const [textSide, setTextSide] = useState<'left' | 'right'>('left');
+
   // Export Resolution & Format Options (Defaults to exact user-selected dimensions)
   const [exportResolution, setExportResolution] = useState<ExportResolutionPreset>('original');
   const [exportFormat, setExportFormat] = useState<ExportImageFormat>('png');
@@ -465,6 +472,11 @@ export default function ThumbnailMakerPage() {
       backgroundBlur,
       showSocialBar,
       socialHandle,
+      headlineHook: headlineHook.trim() || undefined,
+      coreQuestion: coreQuestion.trim() || undefined,
+      hookColor: hookColor || '#FFD700',
+      subjectSide: subjectSide || 'right',
+      textSide: textSide || 'left',
     };
 
     try {
@@ -512,6 +524,11 @@ export default function ThumbnailMakerPage() {
     backgroundBlur,
     showSocialBar,
     socialHandle,
+    headlineHook,
+    coreQuestion,
+    hookColor,
+    subjectSide,
+    textSide,
   ]);
 
   useEffect(() => {
@@ -558,6 +575,11 @@ export default function ThumbnailMakerPage() {
         const json = await res.json();
         setBackgroundImageUrl(json.data.imageUrl);
         setAiProvider(json.data.provider);
+        if (json.data.headlineHook) setHeadlineHook(json.data.headlineHook);
+        if (json.data.coreQuestion) setCoreQuestion(json.data.coreQuestion);
+        if (json.data.hookColor) setHookColor(json.data.hookColor);
+        if (json.data.subjectSide) setSubjectSide(json.data.subjectSide);
+        if (json.data.textSide) setTextSide(json.data.textSide);
         setStatusMessage('New visual applied! Exact title & branding intact.');
         setTimeout(() => setStatusMessage(null), 4000);
       }
@@ -618,6 +640,11 @@ export default function ThumbnailMakerPage() {
         backgroundBlur,
         showSocialBar,
         socialHandle,
+        headlineHook: headlineHook.trim() || undefined,
+        coreQuestion: coreQuestion.trim() || undefined,
+        hookColor: hookColor || '#FFD700',
+        subjectSide: subjectSide || 'right',
+        textSide: textSide || 'left',
       };
 
       const blob = await exportThumbnailBlob(config, exportFormat, exportResolution);
@@ -701,6 +728,11 @@ export default function ThumbnailMakerPage() {
     backgroundBlur,
     showSocialBar,
     socialHandle,
+    headlineHook: headlineHook.trim() || undefined,
+    coreQuestion: coreQuestion.trim() || undefined,
+    hookColor: hookColor || '#FFD700',
+    subjectSide: subjectSide || 'right',
+    textSide: textSide || 'left',
   });
 
   // WordPress Auto Upload Flow (Generates, renders, and directly uploads to website without asking permission)
@@ -725,6 +757,11 @@ export default function ThumbnailMakerPage() {
 
     try {
       let currentImageUrl = backgroundImageUrl;
+      let currentHeadlineHook = headlineHook;
+      let currentCoreQuestion = coreQuestion;
+      let currentHookColor = hookColor;
+      let currentSubjectSide = subjectSide;
+      let currentTextSide = textSide;
 
       // Step 1: Generate AI visual background first if requested or not yet present
       if (options?.forceGenerateFirst || (!backgroundImageUrl && !options?.replaceExisting)) {
@@ -774,6 +811,27 @@ export default function ThumbnailMakerPage() {
         if (result.geminiNotice) setGeminiNotice(result.geminiNotice);
         if (result.plan) setAiPlan(result.plan);
 
+        if (result.headlineHook) {
+          currentHeadlineHook = result.headlineHook;
+          setHeadlineHook(result.headlineHook);
+        }
+        if (result.coreQuestion) {
+          currentCoreQuestion = result.coreQuestion;
+          setCoreQuestion(result.coreQuestion);
+        }
+        if (result.hookColor) {
+          currentHookColor = result.hookColor;
+          setHookColor(result.hookColor);
+        }
+        if (result.subjectSide) {
+          currentSubjectSide = result.subjectSide;
+          setSubjectSide(result.subjectSide);
+        }
+        if (result.textSide) {
+          currentTextSide = result.textSide;
+          setTextSide(result.textSide);
+        }
+
         if (result.recommendedLayout) setCompositionLayout(result.recommendedLayout);
         if (result.recommendedColorGrading) setColorGrading(result.recommendedColorGrading);
         if (result.recommendedBorder) setBorderTreatment(result.recommendedBorder);
@@ -812,6 +870,11 @@ export default function ThumbnailMakerPage() {
       const currentConfig: ThumbnailConfig = {
         ...getCurrentThumbnailConfig(),
         backgroundImageUrl: currentImageUrl || backgroundImageUrl,
+        headlineHook: currentHeadlineHook,
+        coreQuestion: currentCoreQuestion,
+        hookColor: currentHookColor,
+        subjectSide: currentSubjectSide,
+        textSide: currentTextSide,
         socialHandle: 'alulama.org',
       };
       const imageBase64 = await exportThumbnailDataUrl(currentConfig, exportFormat, exportResolution);
@@ -1319,6 +1382,47 @@ export default function ThumbnailMakerPage() {
                   )}
                 </div>
               </div>
+
+              {/* Smart 2-Tier AI Headline Card (Gemini Editorial Art Direction) */}
+              {(headlineHook || coreQuestion) && (
+                <div className="bg-emerald-primary/5 border border-gold-primary/60 p-3.5 rounded-xl space-y-2.5 animate-fadeIn shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-emerald-deep flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-gold-deep" />
+                      <span>Smart 2-Tier Editorial Typography</span>
+                    </span>
+                    <span className="text-[10px] bg-gold-primary/25 text-emerald-deep font-bold px-2.5 py-0.5 rounded-full border border-gold-primary/40">
+                      High-CTR Visual Hook
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                    <div>
+                      <label className="text-[10px] font-bold text-gold-deep uppercase block mb-1">
+                        Tier 1: Hook (3D Gold)
+                      </label>
+                      <Input
+                        value={headlineHook}
+                        onChange={(e) => setHeadlineHook(e.target.value)}
+                        placeholder="e.g. عمرہ کی ہدایات"
+                        className="bg-white text-xs font-serif text-charcoal-dark border-gold-primary/40"
+                        dir={isUrdu ? 'rtl' : 'ltr'}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-emerald-deep uppercase block mb-1">
+                        Tier 2: Question (3D White)
+                      </label>
+                      <Input
+                        value={coreQuestion}
+                        onChange={(e) => setCoreQuestion(e.target.value)}
+                        placeholder="e.g. مکمل بال کاٹنے کا حکم کیا ہے؟"
+                        className="bg-white text-xs font-serif text-charcoal-dark border-sand-border"
+                        dir={isUrdu ? 'rtl' : 'ltr'}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Step 2: Thumbnail Size Selector */}
               <div className="space-y-2 pt-2">
